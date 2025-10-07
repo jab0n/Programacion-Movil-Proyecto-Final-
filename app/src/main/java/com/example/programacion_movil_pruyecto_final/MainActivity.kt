@@ -20,11 +20,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
 
-            NavHost(navController = navController, startDestination = "pantalla1") {
-                composable("pantalla1") { PantallaUno(navController) }
-                composable("pantalla2") { PantallaDos(navController) }
-                composable("pantalla3") { PantallaTres(navController) }
-                composable("pantalla4") { PantallaCuatro(navController) }
+            NavHost(navController = navController, startDestination = "notas") {
+                composable("notas") { Notas(navController) }
+                composable("tareas") { Tareas(navController) }
+                composable("crear_nota") { CrearNota(navController) }
+                composable("crear_tarea") { CrearTerea(navController) }
             }
         }
     }
@@ -45,43 +45,3 @@ fun GreetingPreview() {
     }
 }
 
-
-@Composable
-fun PantallaUno(navController: NavHostController) {
-    Column {
-        Text("Pantalla Uno")
-        Button(onClick = { navController.navigate("pantalla2") }) {
-            Text("Ir a Pantalla Dos")
-        }
-    }
-}
-
-@Composable
-fun PantallaDos(navController: NavHostController) {
-    Column {
-        Text("Pantalla Dos")
-        Button(onClick = { navController.navigate("pantalla3") }) {
-            Text("Ir a Pantalla Tres")
-        }
-    }
-}
-
-@Composable
-fun PantallaTres(navController: NavHostController) {
-    Column {
-        Text("Pantalla Tres")
-        Button(onClick = { navController.navigate("pantalla4") }) {
-            Text("Ir a Pantalla Cuatro")
-        }
-    }
-}
-
-@Composable
-fun PantallaCuatro(navController: NavHostController) {
-    Column {
-        Text("Pantalla Cuatro")
-        Button(onClick = { navController.popBackStack("pantalla1", inclusive = false) }) {
-            Text("Volver a Pantalla Uno")
-        }
-    }
-}
