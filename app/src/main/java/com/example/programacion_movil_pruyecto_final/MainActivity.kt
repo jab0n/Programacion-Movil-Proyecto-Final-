@@ -1,5 +1,9 @@
 package com.example.programacion_movil_pruyecto_final
 
+import com.example.programacion_movil_pruyecto_final.Notas
+import com.example.programacion_movil_pruyecto_final.Tareas
+import com.example.programacion_movil_pruyecto_final.CrearNota
+import com.example.programacion_movil_pruyecto_final.CrearTarea
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,7 +12,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavHostController // Import the missing class
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -24,7 +28,7 @@ class MainActivity : ComponentActivity() {
                 composable("notas") { Notas(navController) }
                 composable("tareas") { Tareas(navController) }
                 composable("crear_nota") { CrearNota(navController) }
-                composable("crear_tarea") { CrearTerea(navController) }
+                composable("crear_tarea") { CrearTarea(navController) }
             }
         }
     }
