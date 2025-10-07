@@ -1,5 +1,6 @@
 package com.example.programacion_movil_pruyecto_final
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -14,8 +15,12 @@ import com.example.programacion_movil_pruyecto_final.CrearTarea
 fun Tareas(navController: NavHostController) {
     Column {
         Text("Tareas")
-        Button(onClick = { navController.navigate("crear_nota") }) {
-            Text("Ir a Crear Nota")
+        Button(onClick = { navController.navigate("crear_tarea") }) {
+            Text("Ir a Crear Tarea")
+        }
+
+        Button(onClick = { navController.navigate("notas") }) {
+            Text("Ir a Notas")
         }
     }
 }

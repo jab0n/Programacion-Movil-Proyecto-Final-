@@ -14,6 +14,10 @@ import com.example.programacion_movil_pruyecto_final.CrearTarea
 fun Notas(navController: NavHostController) {
     Column {
         Text("Notas")
+        Button(onClick = { navController.navigate("crear_nota") }) {
+            Text("Ir a Crear Nota")
+        }
+
         Button(onClick = { navController.navigate("tareas") }) {
             Text("Ir a Tareas")
         }
