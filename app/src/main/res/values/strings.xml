@@ -1,3 +1,15 @@
 <resources>
-    <string name="app_name">Programacion-Movil-Pruyecto-Final</string>
+    <string name="app_name">Notas y Tareas</string>
+    <string name="notes">Notas</string>
+    <string name="tasks">Tareas</string>
+    <string name="add_note">Agregar nota</string>
+    <string name="add_task">Agregar tarea</string>
+    <string name="edit_note">Editar Nota</string>
+    <string name="edit_task">Editar Tarea</string>
+    <string name="title">Título</string>
+    <string name="content">Contenido</string>
+    <string name="save">Guardar</string>
+    <string name="delete">Eliminar nota</string>
+    <string name="completed">Completada</string>
+    <string name="cancel">Cancelar</string>
 </resources>

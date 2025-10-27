@@ -26,9 +26,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
+import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Task
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
@@ -43,11 +45,11 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Tareas") })
+            TopAppBar(title = { Text(stringResource(R.string.tasks)) })
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddTask) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar tarea")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_task))
             }
         }
     ) { padding ->
@@ -59,6 +61,9 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
                     onEdit = { 
                         taskToEdit = it
                         showEditDialog = true
+                    },
+                    onCheckChange = { isChecked ->
+                        viewModel.update(it.copy(isCompleted = isChecked))
                     }
                 )
             }
@@ -78,7 +83,7 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
 }
 
 @Composable
-fun TaskItem(task: Task, onDelete: () -> Unit, onEdit: () -> Unit) {
+fun TaskItem(task: Task, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange: (Boolean) -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -87,14 +92,14 @@ fun TaskItem(task: Task, onDelete: () -> Unit, onEdit: () -> Unit) {
         Row(modifier = Modifier.padding(16.dp)) {
             Checkbox(
                 checked = task.isCompleted,
-                onCheckedChange = { /* No se actualiza aquí */ }
+                onCheckedChange = onCheckChange
             )
             Text(text = task.title, modifier = Modifier.weight(1f))
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Editar tarea")
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_task))
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar tarea")
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
             }
         }
     }
@@ -108,17 +113,17 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Editar Tarea") },
+        title = { Text(stringResource(R.string.edit_task)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Título") }
+                    label = { Text(stringResource(R.string.title)) }
                 )
                 Row {
                     Checkbox(checked = isCompleted, onCheckedChange = { isCompleted = it })
-                    Text(text = "Completada")
+                    Text(text = stringResource(R.string.completed))
                 }
             }
         },
@@ -126,12 +131,12 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
             Button(onClick = {
                 onConfirm(task.copy(title = title, isCompleted = isCompleted))
             }) {
-                Text("Guardar")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             Button(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

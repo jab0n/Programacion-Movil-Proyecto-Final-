@@ -11,9 +11,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
+import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Note
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
@@ -27,7 +29,7 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNoteAdded: () -> Unit
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Agregar Nota") })
+            TopAppBar(title = { Text(stringResource(R.string.add_note)) })
         }
     ) { padding ->
         Column(
@@ -39,18 +41,18 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNoteAdded: () -> Unit
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Título") }
+                label = { Text(stringResource(R.string.title)) }
             )
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text("Contenido") }
+                label = { Text(stringResource(R.string.content)) }
             )
             Button(onClick = {
                 viewModel.insert(Note(title = title, content = content))
                 onNoteAdded()
             }) {
-                Text("Guardar")
+                Text(stringResource(R.string.save))
             }
         }
     }

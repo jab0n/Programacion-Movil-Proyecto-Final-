@@ -11,9 +11,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
+import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Note
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
@@ -36,7 +38,7 @@ fun EditNoteScreen(application: NotesAndTasksApplication, noteId: Int, onNoteUpd
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Editar Nota") })
+            TopAppBar(title = { Text(stringResource(R.string.edit_note)) })
         }
     ) { padding ->
         Column(
@@ -48,12 +50,12 @@ fun EditNoteScreen(application: NotesAndTasksApplication, noteId: Int, onNoteUpd
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Título") }
+                label = { Text(stringResource(R.string.title)) }
             )
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text("Contenido") }
+                label = { Text(stringResource(R.string.content)) }
             )
             Button(onClick = {
                 note?.let {
@@ -61,7 +63,7 @@ fun EditNoteScreen(application: NotesAndTasksApplication, noteId: Int, onNoteUpd
                     onNoteUpdated()
                 }
             }) {
-                Text("Guardar")
+                Text(stringResource(R.string.save))
             }
         }
     }

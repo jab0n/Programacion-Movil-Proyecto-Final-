@@ -23,9 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
+import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Note
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
@@ -38,11 +40,11 @@ fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit, on
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Notas") })
+            TopAppBar(title = { Text(stringResource(R.string.notes)) })
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddNote) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar nota")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_note))
             }
         }
     ) { padding ->
@@ -69,7 +71,7 @@ fun NoteItem(note: Note, onDelete: () -> Unit, onEdit: () -> Unit) {
             }
             Spacer(modifier = Modifier.weight(0.1f))
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar nota")
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
             }
         }
     }

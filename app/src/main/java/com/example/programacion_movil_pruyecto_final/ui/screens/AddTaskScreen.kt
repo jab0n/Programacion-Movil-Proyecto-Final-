@@ -11,9 +11,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
+import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Task
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
@@ -26,7 +28,7 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onTaskAdded: () -> Unit
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Agregar Tarea") })
+            TopAppBar(title = { Text(stringResource(R.string.add_task)) })
         }
     ) { padding ->
         Column(
@@ -38,13 +40,13 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onTaskAdded: () -> Unit
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Título") }
+                label = { Text(stringResource(R.string.title)) }
             )
             Button(onClick = {
                 viewModel.insert(Task(title = title, isCompleted = false))
                 onTaskAdded()
             }) {
-                Text("Guardar")
+                Text(stringResource(R.string.save))
             }
         }
     }
