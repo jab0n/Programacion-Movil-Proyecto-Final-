@@ -1,0 +1,13 @@
+toml
+[versions]
+compose-compiler = "1.5.1" # The version might be different
+
+[libraries]
+# ... other libraries
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "..." }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "..." }
+# Look for an entry like this:
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+    

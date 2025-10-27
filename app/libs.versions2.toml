@@ -1,0 +1,10 @@
+toml
+[versions]
+compose-compiler = "1.5.1" # Use your desired version
+
+[plugins]
+# Make sure this alias matches what you use in build.gradle.kts
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+    
