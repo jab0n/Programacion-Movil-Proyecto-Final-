@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,7 +36,7 @@ import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskScreen(application: NotesAndTasksApplication, onTaskAdded: () -> Unit) {
+fun AddTaskScreen(application: NotesAndTasksApplication, onNavigateBack: () -> Unit) {
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
@@ -65,7 +69,17 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onTaskAdded: () -> Unit
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.add_task)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.add_task)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cancel)
+                        )
+                    }
+                }
+            )
         },
     ) { padding ->
         Column(
@@ -104,7 +118,7 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onTaskAdded: () -> Unit
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
                 viewModel.insert(Task(title = title, content = content, isCompleted = false, date = date, time = time))
-                onTaskAdded()
+                onNavigateBack()
             }) {
                 Text(stringResource(R.string.save))
             }

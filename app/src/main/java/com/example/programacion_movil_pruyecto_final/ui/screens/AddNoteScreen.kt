@@ -3,8 +3,12 @@ package com.example.programacion_movil_pruyecto_final.ui.screens
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,14 +26,24 @@ import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddNoteScreen(application: NotesAndTasksApplication, onNoteAdded: () -> Unit) {
+fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> Unit) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.add_note)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.add_note)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cancel)
+                        )
+                    }
+                }
+            )
         }
     ) { padding ->
         Column(
@@ -50,7 +64,7 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNoteAdded: () -> Unit
             )
             Button(onClick = {
                 viewModel.insert(Note(title = title, content = content))
-                onNoteAdded()
+                onNavigateBack()
             }) {
                 Text(stringResource(R.string.save))
             }

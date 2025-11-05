@@ -113,8 +113,8 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(Screen.Tasks.route) { TasksScreen(application, onAddTask = { navController.navigate("add_task") }) }
-                        composable("add_note") { AddNoteScreen(application) { navController.popBackStack() } }
-                        composable("add_task") { AddTaskScreen(application) { navController.popBackStack() } }
+                        composable("add_note") { AddNoteScreen(application, onNavigateBack = { navController.popBackStack() }) }
+                        composable("add_task") { AddTaskScreen(application, onNavigateBack = { navController.popBackStack() }) }
                     }
                 }
             }

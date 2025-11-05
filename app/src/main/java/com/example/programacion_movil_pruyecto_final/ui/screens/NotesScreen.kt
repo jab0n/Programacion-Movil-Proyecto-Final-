@@ -1,5 +1,7 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,12 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -57,8 +54,11 @@ fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit) {
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(uiState.noteList) { note ->
+                var isExpanded by remember { mutableStateOf(false) }
                 NoteItem(
                     note = note,
+                    isExpanded = isExpanded,
+                    onExpand = { isExpanded = !isExpanded },
                     onDelete = { viewModel.delete(note) },
                     onEdit = {
                         noteToEdit = note
@@ -82,22 +82,25 @@ fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit) {
 }
 
 @Composable
-fun NoteItem(note: Note, onDelete: () -> Unit, onEdit: () -> Unit) {
+fun NoteItem(note: Note, isExpanded: Boolean, onExpand: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
+            .clickable { onExpand() }
     ) {
-        Row(modifier = Modifier.padding(16.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = note.title)
-                Text(text = note.content)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row {
+                Text(text = note.title, modifier = Modifier.weight(1f))
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_note))
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
+                }
             }
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_note))
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
+            AnimatedVisibility(visible = isExpanded) {
+                Text(text = note.content, modifier = Modifier.padding(top = 8.dp))
             }
         }
     }

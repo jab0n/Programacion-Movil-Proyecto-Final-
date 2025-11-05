@@ -3,6 +3,8 @@ package com.example.programacion_movil_pruyecto_final.ui.screens
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.widget.DatePicker
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,8 +63,11 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(uiState.taskList) {
+                var isExpanded by remember { mutableStateOf(false) }
                 TaskItem(
                     task = it,
+                    isExpanded = isExpanded,
+                    onExpand = { isExpanded = !isExpanded },
                     onDelete = { viewModel.delete(it) },
                     onEdit = { 
                         taskToEdit = it
@@ -89,28 +94,34 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
 }
 
 @Composable
-fun TaskItem(task: Task, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange: (Boolean) -> Unit) {
+fun TaskItem(task: Task, isExpanded: Boolean, onExpand: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange: (Boolean) -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
+            .clickable { onExpand() }
     ) {
-        Row(modifier = Modifier.padding(16.dp)) {
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = onCheckChange
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = task.title)
-                val dateParts = task.date.split("-")
-                val displayDate = if (dateParts.size == 3) "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}" else task.date
-                Text(text = "$displayDate ${task.time}")
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row {
+                Checkbox(
+                    checked = task.isCompleted,
+                    onCheckedChange = onCheckChange
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = task.title)
+                    val dateParts = task.date.split("-")
+                    val displayDate = if (dateParts.size == 3) "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}" else task.date
+                    Text(text = "$displayDate ${task.time}")
+                }
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_task))
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
+                }
             }
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_task))
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
+            AnimatedVisibility(visible = isExpanded) {
+                Text(text = task.content, modifier = Modifier.padding(top = 8.dp))
             }
         }
     }
