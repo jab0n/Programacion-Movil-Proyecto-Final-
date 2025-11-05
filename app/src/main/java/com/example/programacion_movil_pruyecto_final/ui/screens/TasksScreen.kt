@@ -1,9 +1,7 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,7 +22,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -109,6 +112,7 @@ fun TaskItem(task: Task, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange
 @Composable
 fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit) {
     var title by remember { mutableStateOf(task.title) }
+    var content by remember { mutableStateOf(task.content) }
     var isCompleted by remember { mutableStateOf(task.isCompleted) }
 
     AlertDialog(
@@ -121,6 +125,11 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
                     onValueChange = { title = it },
                     label = { Text(stringResource(R.string.title)) }
                 )
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text(stringResource(R.string.content)) }
+                )
                 Row {
                     Checkbox(checked = isCompleted, onCheckedChange = { isCompleted = it })
                     Text(text = stringResource(R.string.completed))
@@ -129,7 +138,7 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
         },
         confirmButton = {
             Button(onClick = {
-                onConfirm(task.copy(title = title, isCompleted = isCompleted))
+                onConfirm(task.copy(title = title, content = content, isCompleted = isCompleted))
             }) {
                 Text(stringResource(R.string.save))
             }

@@ -24,8 +24,6 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
             initialValue = TasksUiState()
         )
 
-    fun getTaskById(id: Int) = repository.getTaskById(id)
-
     fun insert(task: Task) = viewModelScope.launch {
         repository.insert(task)
     }

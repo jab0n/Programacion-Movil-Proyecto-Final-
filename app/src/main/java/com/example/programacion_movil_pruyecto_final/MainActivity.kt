@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Note
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Note
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,8 +35,8 @@ import com.example.programacion_movil_pruyecto_final.ui.screens.NotesScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.TasksScreen
 
 sealed class Screen(val route: String, val icon: ImageVector, val label: Int) {
-    object Notes : Screen("notes", Icons.Default.Note, R.string.notes)
-    object Tasks : Screen("tasks", Icons.Default.List, R.string.tasks)
+    object Notes : Screen("notes", Icons.AutoMirrored.Filled.Note, R.string.notes)
+    object Tasks : Screen("tasks", Icons.AutoMirrored.Filled.List, R.string.tasks)
 }
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)

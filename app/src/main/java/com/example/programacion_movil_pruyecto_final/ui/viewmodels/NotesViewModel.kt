@@ -24,8 +24,6 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
             initialValue = NotesUiState()
         )
 
-    fun getNoteById(id: Int) = repository.getNoteById(id)
-
     fun insert(note: Note) = viewModelScope.launch {
         repository.insert(note)
     }
