@@ -2,8 +2,8 @@ package com.example.programacion_movil_pruyecto_final.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.programacion_movil_pruyecto_final.data.INotesRepository
 import com.example.programacion_movil_pruyecto_final.data.Note
-import com.example.programacion_movil_pruyecto_final.data.NotesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -14,7 +14,7 @@ data class NotesUiState(
     val noteList: List<Note> = listOf()
 )
 
-class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
+class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
 
     val uiState: StateFlow<NotesUiState> = repository.allNotes
         .map { NotesUiState(it) }

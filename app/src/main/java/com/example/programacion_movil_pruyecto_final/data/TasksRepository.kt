@@ -2,23 +2,31 @@ package com.example.programacion_movil_pruyecto_final.data
 
 import kotlinx.coroutines.flow.Flow
 
-class TasksRepository(private val taskDao: TaskDao) {
+interface ITasksRepository {
+    val allTasks: Flow<List<Task>>
+    fun getTaskById(id: Int): Flow<Task>
+    suspend fun insert(task: Task)
+    suspend fun update(task: Task)
+    suspend fun delete(task: Task)
+}
 
-    val allTasks: Flow<List<Task>> = taskDao.getAllTasks()
+class TasksRepository(private val taskDao: TaskDao) : ITasksRepository {
 
-    fun getTaskById(id: Int): Flow<Task> {
+    override val allTasks: Flow<List<Task>> = taskDao.getAllTasks()
+
+    override fun getTaskById(id: Int): Flow<Task> {
         return taskDao.getTaskById(id)
     }
 
-    suspend fun insert(task: Task) {
+    override suspend fun insert(task: Task) {
         taskDao.insertTask(task)
     }
 
-    suspend fun update(task: Task) {
+    override suspend fun update(task: Task) {
         taskDao.updateTask(task)
     }
 
-    suspend fun delete(task: Task) {
+    override suspend fun delete(task: Task) {
         taskDao.deleteTask(task)
     }
 }

@@ -2,8 +2,8 @@ package com.example.programacion_movil_pruyecto_final.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.programacion_movil_pruyecto_final.data.ITasksRepository
 import com.example.programacion_movil_pruyecto_final.data.Task
-import com.example.programacion_movil_pruyecto_final.data.TasksRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -14,7 +14,7 @@ data class TasksUiState(
     val taskList: List<Task> = listOf()
 )
 
-class TasksViewModel(private val repository: TasksRepository) : ViewModel() {
+class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
 
     val uiState: StateFlow<TasksUiState> = repository.allTasks
         .map { TasksUiState(it) }
