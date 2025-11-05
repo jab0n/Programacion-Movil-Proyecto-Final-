@@ -1,8 +1,14 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.widget.DatePicker
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,13 +28,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,6 +39,7 @@ import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Task
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,7 +100,12 @@ fun TaskItem(task: Task, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange
                 checked = task.isCompleted,
                 onCheckedChange = onCheckChange
             )
-            Text(text = task.title, modifier = Modifier.weight(1f))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = task.title)
+                val dateParts = task.date.split("-")
+                val displayDate = if (dateParts.size == 3) "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}" else task.date
+                Text(text = "$displayDate ${task.time}")
+            }
             IconButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_task))
             }
@@ -113,7 +121,43 @@ fun TaskItem(task: Task, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange
 fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit) {
     var title by remember { mutableStateOf(task.title) }
     var content by remember { mutableStateOf(task.content) }
+    var date by remember { mutableStateOf(task.date) } // Se guarda como YYYY-MM-DD
+    var time by remember { mutableStateOf(task.time) }
     var isCompleted by remember { mutableStateOf(task.isCompleted) }
+
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+    
+    // Configurar el calendario con la fecha existente si está en el formato correcto
+    if (date.isNotEmpty()) {
+        try {
+            val parts = date.split("-").map { it.toInt() }
+            if (parts.size == 3) {
+                calendar.set(parts[0], parts[1] - 1, parts[2])
+            }
+        } catch (e: Exception) { /* Ignorar errores de formato antiguo */ }
+    }
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+            // Guardar en formato ordenable
+            date = "%d-%02d-%02d".format(year, month + 1, dayOfMonth)
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, hourOfDay: Int, minute: Int ->
+            time = "%02d:%02d".format(hourOfDay, minute)
+        },
+        calendar.get(Calendar.HOUR_OF_DAY),
+        calendar.get(Calendar.MINUTE),
+        true
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -130,6 +174,24 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
                     onValueChange = { content = it },
                     label = { Text(stringResource(R.string.content)) }
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // Formatear para mostrar al usuario
+                    val displayDate = remember(date) {
+                        val parts = date.split("-")
+                        if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else date
+                    }
+                    Button(onClick = { datePickerDialog.show() }) {
+                        Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
+                    }
+                    Button(onClick = { timePickerDialog.show() }) {
+                        Text(text = time.ifEmpty { stringResource(R.string.select_time) })
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 Row {
                     Checkbox(checked = isCompleted, onCheckedChange = { isCompleted = it })
                     Text(text = stringResource(R.string.completed))
@@ -138,7 +200,7 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
         },
         confirmButton = {
             Button(onClick = {
-                onConfirm(task.copy(title = title, content = content, isCompleted = isCompleted))
+                onConfirm(task.copy(title = title, content = content, isCompleted = isCompleted, date = date, time = time))
             }) {
                 Text(stringResource(R.string.save))
             }
