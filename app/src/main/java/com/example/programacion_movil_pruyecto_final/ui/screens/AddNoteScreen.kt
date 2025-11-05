@@ -1,7 +1,10 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -55,13 +58,19 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text(stringResource(R.string.title)) }
+                label = { Text(stringResource(R.string.title)) },
+                modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text(stringResource(R.string.content)) }
+                label = { Text(stringResource(R.string.content)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             )
+            Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
                 viewModel.insert(Note(title = title, content = content))
                 onNavigateBack()

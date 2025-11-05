@@ -90,12 +90,17 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text(stringResource(R.string.title)) }
+                label = { Text(stringResource(R.string.title)) },
+                modifier = Modifier.fillMaxWidth()
             )
+            Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text(stringResource(R.string.content)) }
+                label = { Text(stringResource(R.string.content)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Row(
