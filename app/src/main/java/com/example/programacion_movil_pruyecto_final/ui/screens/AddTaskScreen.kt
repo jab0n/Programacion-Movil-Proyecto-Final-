@@ -40,7 +40,7 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") } // Se guarda como YYYY-MM-DD
+    var date by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
 
     val context = LocalContext.current
@@ -49,7 +49,6 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
     val datePickerDialog = DatePickerDialog(
         context,
         { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
-            // Guardar en formato ordenable
             date = "%d-%02d-%02d".format(year, month + 1, dayOfMonth)
         },
         calendar.get(Calendar.YEAR),
@@ -103,7 +102,6 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Formatear para mostrar al usuario
                 val displayDate = remember(date) {
                     val parts = date.split("-")
                     if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else date
