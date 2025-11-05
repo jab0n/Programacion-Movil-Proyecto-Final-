@@ -6,16 +6,23 @@ import com.example.programacion_movil_pruyecto_final.data.Note
 import com.example.programacion_movil_pruyecto_final.data.NotesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+data class NotesUiState(
+    val noteList: List<Note> = listOf()
+)
+
 class NotesViewModel(private val repository: NotesRepository) : ViewModel() {
 
-    val allNotes: StateFlow<List<Note>> = repository.allNotes.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val uiState: StateFlow<NotesUiState> = repository.allNotes
+        .map { NotesUiState(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = NotesUiState()
+        )
 
     fun getNoteById(id: Int) = repository.getNoteById(id)
 

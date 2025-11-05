@@ -25,6 +25,7 @@ import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewMode
 fun AddTaskScreen(application: NotesAndTasksApplication, onTaskAdded: () -> Unit) {
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -42,8 +43,13 @@ fun AddTaskScreen(application: NotesAndTasksApplication, onTaskAdded: () -> Unit
                 onValueChange = { title = it },
                 label = { Text(stringResource(R.string.title)) }
             )
+            OutlinedTextField(
+                value = content,
+                onValueChange = { content = it },
+                label = { Text(stringResource(R.string.content)) }
+            )
             Button(onClick = {
-                viewModel.insert(Task(title = title, isCompleted = false))
+                viewModel.insert(Task(title = title, content = content, isCompleted = false))
                 onTaskAdded()
             }) {
                 Text(stringResource(R.string.save))

@@ -39,7 +39,7 @@ import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewMode
 @Composable
 fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
-    val tasks by viewModel.allTasks.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
 
@@ -54,7 +54,7 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(tasks) {
+            items(uiState.taskList) {
                 TaskItem(
                     task = it,
                     onDelete = { viewModel.delete(it) },

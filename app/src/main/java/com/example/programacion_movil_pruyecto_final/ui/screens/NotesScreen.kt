@@ -36,7 +36,7 @@ import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewMode
 @Composable
 fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit, onEditNote: (Int) -> Unit) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
-    val notes by viewModel.allNotes.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -49,7 +49,7 @@ fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit, on
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(notes) {
+            items(uiState.noteList) {
                 NoteItem(it, onDelete = { viewModel.delete(it) }, onEdit = { onEditNote(it.id) })
             }
         }

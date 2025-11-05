@@ -24,7 +24,10 @@ import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewMode
 @Composable
 fun EditNoteScreen(application: NotesAndTasksApplication, noteId: Int, onNoteUpdated: () -> Unit) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
-    val note by viewModel.getNoteById(noteId).collectAsState(initial = null)
+    val uiState by viewModel.uiState.collectAsState()
+    val note = remember(uiState, noteId) {
+        uiState.noteList.find { it.id == noteId }
+    }
 
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
