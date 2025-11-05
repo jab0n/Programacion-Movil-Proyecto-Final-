@@ -26,15 +26,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.example.programacion_movil_pruyecto_final.ui.screens.AddNoteScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.AddTaskScreen
-import com.example.programacion_movil_pruyecto_final.ui.screens.EditNoteScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.NotesScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.TasksScreen
 
@@ -113,23 +110,12 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Notes.route) { 
                             NotesScreen(
                                 application,
-                                onAddNote = { navController.navigate("add_note") },
-                                onEditNote = { noteId -> navController.navigate("edit_note/$noteId") }
+                                onAddNote = { navController.navigate("add_note") }
                             )
                         }
                         composable(Screen.Tasks.route) { TasksScreen(application, onAddTask = { navController.navigate("add_task") }) }
                         composable("add_note") { AddNoteScreen(application) { navController.popBackStack() } }
                         composable("add_task") { AddTaskScreen(application) { navController.popBackStack() } }
-                        composable(
-                            route = "edit_note/{noteId}",
-                            arguments = listOf(navArgument("noteId") { type = NavType.IntType })
-                        ) {
-                            EditNoteScreen(
-                                application = application,
-                                noteId = it.arguments?.getInt("noteId") ?: 0,
-                                onNoteUpdated = { navController.popBackStack() }
-                            )
-                        }
                     }
                 }
             }
