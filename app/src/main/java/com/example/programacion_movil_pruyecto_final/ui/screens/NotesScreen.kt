@@ -53,11 +53,10 @@ fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit) {
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(uiState.noteList) { note ->
-                var isExpanded by remember { mutableStateOf(false) }
                 NoteItem(
                     note = note,
-                    isExpanded = isExpanded,
-                    onExpand = { isExpanded = !isExpanded },
+                    isExpanded = note.id in uiState.expandedNoteIds,
+                    onExpand = { viewModel.toggleNoteExpansion(note.id) },
                     onDelete = { viewModel.delete(note) },
                     onEdit = { viewModel.startEditingNote(note) }
                 )

@@ -42,23 +42,27 @@ fun TaskDetails.toTask(): Task = Task(
 data class TasksUiState(
     val taskList: List<Task> = listOf(),
     val taskDetails: TaskDetails = TaskDetails(),
-    val isEditingTask: Boolean = false
+    val isEditingTask: Boolean = false,
+    val expandedTaskIds: Set<Int> = emptySet()
 )
 
 class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
 
     private val _taskDetails = MutableStateFlow(TaskDetails())
     private val _isEditingTask = MutableStateFlow(false)
+    private val _expandedTaskIds = MutableStateFlow(emptySet<Int>())
 
     val uiState: StateFlow<TasksUiState> = combine(
         repository.allTasks,
         _taskDetails,
-        _isEditingTask
-    ) { tasks, details, isEditing ->
+        _isEditingTask,
+        _expandedTaskIds
+    ) { tasks, details, isEditing, expandedIds ->
         TasksUiState(
             taskList = tasks,
             taskDetails = details,
-            isEditingTask = isEditing
+            isEditingTask = isEditing,
+            expandedTaskIds = expandedIds
         )
     }.stateIn(
         scope = viewModelScope,
@@ -84,6 +88,16 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
 
     fun onCompletedChange(isCompleted: Boolean) {
         _taskDetails.update { it.copy(isCompleted = isCompleted) }
+    }
+    
+    fun toggleTaskExpansion(taskId: Int) {
+        _expandedTaskIds.update { currentIds ->
+            if (taskId in currentIds) {
+                currentIds - taskId
+            } else {
+                currentIds + taskId
+            }
+        }
     }
 
     fun startEditingTask(task: Task) {

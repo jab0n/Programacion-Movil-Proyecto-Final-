@@ -61,16 +61,15 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(uiState.taskList) {
-                var isExpanded by remember { mutableStateOf(false) }
+            items(uiState.taskList) { task ->
                 TaskItem(
-                    task = it,
-                    isExpanded = isExpanded,
-                    onExpand = { isExpanded = !isExpanded },
-                    onDelete = { viewModel.delete(it) },
-                    onEdit = { viewModel.startEditingTask(it) },
+                    task = task,
+                    isExpanded = task.id in uiState.expandedTaskIds,
+                    onExpand = { viewModel.toggleTaskExpansion(task.id) },
+                    onDelete = { viewModel.delete(task) },
+                    onEdit = { viewModel.startEditingTask(task) },
                     onCheckChange = { isChecked ->
-                        viewModel.update(it.copy(isCompleted = isChecked))
+                        viewModel.update(task.copy(isCompleted = isChecked))
                     }
                 )
             }

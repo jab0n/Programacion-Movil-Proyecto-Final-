@@ -33,23 +33,27 @@ fun NoteDetails.toNote(): Note = Note(
 data class NotesUiState(
     val noteList: List<Note> = listOf(),
     val noteDetails: NoteDetails = NoteDetails(),
-    val isEditingNote: Boolean = false
+    val isEditingNote: Boolean = false,
+    val expandedNoteIds: Set<Int> = emptySet()
 )
 
 class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
 
     private val _noteDetails = MutableStateFlow(NoteDetails())
     private val _isEditingNote = MutableStateFlow(false)
+    private val _expandedNoteIds = MutableStateFlow(emptySet<Int>())
 
     val uiState: StateFlow<NotesUiState> = combine(
         repository.allNotes,
         _noteDetails,
-        _isEditingNote
-    ) { notes, details, isEditing ->
+        _isEditingNote,
+        _expandedNoteIds
+    ) { notes, details, isEditing, expandedIds ->
         NotesUiState(
             noteList = notes,
             noteDetails = details,
-            isEditingNote = isEditing
+            isEditingNote = isEditing,
+            expandedNoteIds = expandedIds
         )
     }.stateIn(
         scope = viewModelScope,
@@ -63,6 +67,16 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
 
     fun onContentChange(content: String) {
         _noteDetails.update { it.copy(content = content) }
+    }
+
+    fun toggleNoteExpansion(noteId: Int) {
+        _expandedNoteIds.update { currentIds ->
+            if (noteId in currentIds) {
+                currentIds - noteId
+            } else {
+                currentIds + noteId
+            }
+        }
     }
 
     fun startEditingNote(note: Note) {
