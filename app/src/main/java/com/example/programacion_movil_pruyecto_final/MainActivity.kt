@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
             val items = listOf(Screen.Notes, Screen.Tasks)
 
             val showBottomBar = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
+            val isExpandedScreen = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
             Scaffold(
                 bottomBar = {
@@ -106,13 +107,20 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = Screen.Notes.route,
                     ) {
-                        composable(Screen.Notes.route) { 
+                        composable(Screen.Notes.route) {
                             NotesScreen(
-                                application,
-                                onAddNote = { navController.navigate("add_note") }
+                                application = application,
+                                onAddNote = { navController.navigate("add_note") },
+                                isExpandedScreen = isExpandedScreen
                             )
                         }
-                        composable(Screen.Tasks.route) { TasksScreen(application, onAddTask = { navController.navigate("add_task") }) }
+                        composable(Screen.Tasks.route) {
+                            TasksScreen(
+                                application = application,
+                                onAddTask = { navController.navigate("add_task") },
+                                isExpandedScreen = isExpandedScreen
+                            )
+                        }
                         composable("add_note") { AddNoteScreen(application, onNavigateBack = { navController.popBackStack() }) }
                         composable("add_task") { AddTaskScreen(application, onNavigateBack = { navController.popBackStack() }) }
                     }

@@ -80,8 +80,12 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
     }
 
     fun startEditingNote(note: Note) {
-        _isEditingNote.value = true
-        _noteDetails.value = note.toNoteDetails()
+        if (_isEditingNote.value && _noteDetails.value.id == note.id) {
+            stopEditingNote()
+        } else {
+            _isEditingNote.value = true
+            _noteDetails.value = note.toNoteDetails()
+        }
     }
 
     fun stopEditingNote() {

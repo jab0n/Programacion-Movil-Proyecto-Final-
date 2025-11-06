@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -43,10 +46,15 @@ import com.example.programacion_movil_pruyecto_final.data.Task
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TaskDetails
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
 import java.util.Calendar
+import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
+fun TasksScreen(
+    application: NotesAndTasksApplication, 
+    onAddTask: () -> Unit,
+    isExpandedScreen: Boolean
+) {
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
 
@@ -60,46 +68,85 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
             }
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding)) {
-            items(uiState.taskList) { task ->
-                TaskItem(
-                    task = task,
-                    isExpanded = task.id in uiState.expandedTaskIds,
-                    onExpand = { viewModel.toggleTaskExpansion(task.id) },
-                    onDelete = { viewModel.delete(task) },
-                    onEdit = { viewModel.startEditingTask(task) },
-                    onCheckChange = { isChecked ->
-                        viewModel.update(task.copy(isCompleted = isChecked))
+        if (isExpandedScreen) {
+            Row(modifier = Modifier.padding(padding)) {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(uiState.taskList) { task ->
+                        TaskItem(
+                            task = task,
+                            isExpanded = task.id in uiState.expandedTaskIds,
+                            onClick = { viewModel.toggleTaskExpansion(task.id) },
+                            onDelete = { viewModel.delete(task) },
+                            onEdit = { viewModel.startEditingTask(task) },
+                            onCheckChange = { isChecked ->
+                                viewModel.update(task.copy(isCompleted = isChecked))
+                            }
+                        )
                     }
+                }
+                if (uiState.isEditingTask) {
+                    TaskDetailPanel(
+                        modifier = Modifier.weight(1f),
+                        taskDetails = uiState.taskDetails,
+                        onDismiss = { viewModel.stopEditingTask() },
+                        onConfirm = { viewModel.update() },
+                        onTitleChange = viewModel::onTitleChange,
+                        onContentChange = viewModel::onContentChange,
+                        onDateChange = viewModel::onDateChange,
+                        onTimeChange = viewModel::onTimeChange,
+                        onCompletedChange = viewModel::onCompletedChange
+                    )
+                }
+            }
+        } else {
+            LazyColumn(modifier = Modifier.padding(padding)) {
+                items(uiState.taskList) { task ->
+                    TaskItem(
+                        task = task,
+                        isExpanded = task.id in uiState.expandedTaskIds,
+                        onClick = { viewModel.toggleTaskExpansion(task.id) },
+                        onDelete = { viewModel.delete(task) },
+                        onEdit = { viewModel.startEditingTask(task) },
+                        onCheckChange = { isChecked ->
+                            viewModel.update(task.copy(isCompleted = isChecked))
+                        }
+                    )
+                }
+            }
+            if (uiState.isEditingTask) {
+                TaskDetailPanel(
+                    isDialog = true,
+                    taskDetails = uiState.taskDetails,
+                    onDismiss = { viewModel.stopEditingTask() },
+                    onConfirm = { viewModel.update() },
+                    onTitleChange = viewModel::onTitleChange,
+                    onContentChange = viewModel::onContentChange,
+                    onDateChange = viewModel::onDateChange,
+                    onTimeChange = viewModel::onTimeChange,
+                    onCompletedChange = viewModel::onCompletedChange
                 )
             }
         }
     }
-
-    if (uiState.isEditingTask) {
-        EditTaskDialog(
-            taskDetails = uiState.taskDetails,
-            onDismiss = { viewModel.stopEditingTask() },
-            onConfirm = { viewModel.update() },
-            onTitleChange = viewModel::onTitleChange,
-            onContentChange = viewModel::onContentChange,
-            onDateChange = viewModel::onDateChange,
-            onTimeChange = viewModel::onTimeChange,
-            onCompletedChange = viewModel::onCompletedChange
-        )
-    }
 }
 
 @Composable
-fun TaskItem(task: Task, isExpanded: Boolean, onExpand: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange: (Boolean) -> Unit) {
+fun TaskItem(
+    task: Task, 
+    isExpanded: Boolean, 
+    onClick: () -> Unit, 
+    onDelete: () -> Unit, 
+    onEdit: () -> Unit, 
+    onCheckChange: (Boolean) -> Unit
+) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
-            .clickable { onExpand() }
+            .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = task.isCompleted,
                     onCheckedChange = onCheckChange
@@ -126,7 +173,9 @@ fun TaskItem(task: Task, isExpanded: Boolean, onExpand: () -> Unit, onDelete: ()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditTaskDialog(
+fun TaskDetailPanel(
+    modifier: Modifier = Modifier,
+    isDialog: Boolean = false,
     taskDetails: TaskDetails,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -168,20 +217,77 @@ fun EditTaskDialog(
         true
     )
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.edit_task)) },
-        text = {
-            Column {
+    if (isDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.edit_task)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    OutlinedTextField(
+                        value = taskDetails.title,
+                        onValueChange = onTitleChange,
+                        label = { Text(stringResource(R.string.title)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = taskDetails.content,
+                        onValueChange = onContentChange,
+                        label = { Text(stringResource(R.string.content)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        val displayDate = remember(taskDetails.date) {
+                            val parts = taskDetails.date.split("-")
+                            if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
+                        }
+                        Button(onClick = { datePickerDialog.show() }) {
+                            Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
+                        }
+                        Button(onClick = { timePickerDialog.show() }) {
+                            Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = taskDetails.isCompleted, onCheckedChange = onCompletedChange)
+                        Text(text = stringResource(R.string.completed))
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = onConfirm) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                Button(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    } else {
+        Column(
+            modifier = modifier.padding(16.dp).fillMaxHeight()
+        ) {
+            // Scrollable content area
+            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = taskDetails.title,
                     onValueChange = onTitleChange,
-                    label = { Text(stringResource(R.string.title)) }
+                    label = { Text(stringResource(R.string.title)) },
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = taskDetails.content,
                     onValueChange = onContentChange,
-                    label = { Text(stringResource(R.string.content)) }
+                    label = { Text(stringResource(R.string.content)) },
+                    modifier = Modifier.fillMaxWidth().height(200.dp) // Maintain a reasonable default size
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
@@ -200,21 +306,22 @@ fun EditTaskDialog(
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = taskDetails.isCompleted, onCheckedChange = onCompletedChange)
                     Text(text = stringResource(R.string.completed))
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = onConfirm) {
-                Text(stringResource(R.string.save))
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+            // Sticky action buttons at the bottom
+            Spacer(modifier = Modifier.height(16.dp))
+            Row {
+                Button(onClick = onConfirm) {
+                    Text(stringResource(R.string.save))
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Button(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         }
-    )
+    }
 }

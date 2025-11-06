@@ -101,8 +101,12 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
     }
 
     fun startEditingTask(task: Task) {
-        _isEditingTask.value = true
-        _taskDetails.value = task.toTaskDetails()
+        if (_isEditingTask.value && _taskDetails.value.id == task.id) {
+            stopEditingTask()
+        } else {
+            _isEditingTask.value = true
+            _taskDetails.value = task.toTaskDetails()
+        }
     }
 
     fun stopEditingTask() {

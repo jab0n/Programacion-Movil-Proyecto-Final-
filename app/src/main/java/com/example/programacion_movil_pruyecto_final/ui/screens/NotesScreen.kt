@@ -4,10 +4,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -34,10 +39,15 @@ import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Note
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NoteDetails
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
+import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit) {
+fun NotesScreen(
+    application: NotesAndTasksApplication, 
+    onAddNote: () -> Unit, 
+    isExpandedScreen: Boolean
+) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
 
@@ -51,40 +61,66 @@ fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit) {
             }
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding)) {
-            items(uiState.noteList) { note ->
-                NoteItem(
-                    note = note,
-                    isExpanded = note.id in uiState.expandedNoteIds,
-                    onExpand = { viewModel.toggleNoteExpansion(note.id) },
-                    onDelete = { viewModel.delete(note) },
-                    onEdit = { viewModel.startEditingNote(note) }
+        if (isExpandedScreen) {
+            Row(modifier = Modifier.padding(padding)) {
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(uiState.noteList) { note ->
+                        NoteItem(
+                            note = note,
+                            isExpanded = note.id in uiState.expandedNoteIds,
+                            onClick = { viewModel.toggleNoteExpansion(note.id) },
+                            onDelete = { viewModel.delete(note) },
+                            onEdit = { viewModel.startEditingNote(note) }
+                        )
+                    }
+                }
+                if (uiState.isEditingNote) {
+                    NoteDetailPanel(
+                        modifier = Modifier.weight(1f),
+                        noteDetails = uiState.noteDetails,
+                        onDismiss = { viewModel.stopEditingNote() },
+                        onConfirm = { viewModel.update() },
+                        onTitleChange = viewModel::onTitleChange,
+                        onContentChange = viewModel::onContentChange
+                    )
+                }
+            }
+        } else {
+            LazyColumn(modifier = Modifier.padding(padding)) {
+                items(uiState.noteList) { note ->
+                    NoteItem(
+                        note = note,
+                        isExpanded = note.id in uiState.expandedNoteIds,
+                        onClick = { viewModel.toggleNoteExpansion(note.id) },
+                        onDelete = { viewModel.delete(note) },
+                        onEdit = { viewModel.startEditingNote(note) }
+                    )
+                }
+            }
+            if (uiState.isEditingNote) {
+                NoteDetailPanel(
+                    isDialog = true,
+                    noteDetails = uiState.noteDetails,
+                    onDismiss = { viewModel.stopEditingNote() },
+                    onConfirm = { viewModel.update() },
+                    onTitleChange = viewModel::onTitleChange,
+                    onContentChange = viewModel::onContentChange
                 )
             }
         }
     }
-
-    if (uiState.isEditingNote) {
-        EditNoteDialog(
-            noteDetails = uiState.noteDetails,
-            onDismiss = { viewModel.stopEditingNote() },
-            onConfirm = { viewModel.update() },
-            onTitleChange = viewModel::onTitleChange,
-            onContentChange = viewModel::onContentChange
-        )
-    }
 }
 
 @Composable
-fun NoteItem(note: Note, isExpanded: Boolean, onExpand: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit) {
+fun NoteItem(note: Note, isExpanded: Boolean, onClick: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
-            .clickable { onExpand() }
+            .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = note.title, modifier = Modifier.weight(1f))
                 IconButton(onClick = onEdit) {
                     Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_note))
@@ -102,39 +138,78 @@ fun NoteItem(note: Note, isExpanded: Boolean, onExpand: () -> Unit, onDelete: ()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditNoteDialog(
+fun NoteDetailPanel(
+    modifier: Modifier = Modifier,
+    isDialog: Boolean = false,
     noteDetails: NoteDetails,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     onTitleChange: (String) -> Unit,
     onContentChange: (String) -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.edit_note)) },
-        text = {
-            Column {
+    if (isDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.edit_note)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    OutlinedTextField(
+                        value = noteDetails.title,
+                        onValueChange = onTitleChange,
+                        label = { Text(stringResource(R.string.title)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = noteDetails.content,
+                        onValueChange = onContentChange,
+                        label = { Text(stringResource(R.string.content)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = onConfirm) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                Button(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    } else {
+        Column(
+            modifier = modifier.padding(16.dp).fillMaxHeight()
+        ) {
+            // Scrollable content area
+            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     value = noteDetails.title,
                     onValueChange = onTitleChange,
-                    label = { Text(stringResource(R.string.title)) }
+                    label = { Text(stringResource(R.string.title)) },
+                    modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = noteDetails.content,
                     onValueChange = onContentChange,
-                    label = { Text(stringResource(R.string.content)) }
+                    label = { Text(stringResource(R.string.content)) },
+                    modifier = Modifier.fillMaxWidth().height(200.dp) // Maintain a reasonable default size
                 )
             }
-        },
-        confirmButton = {
-            Button(onClick = onConfirm) {
-                Text(stringResource(R.string.save))
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+            // Sticky action buttons at the bottom
+            Spacer(modifier = Modifier.height(16.dp))
+            Row {
+                Button(onClick = onConfirm) {
+                    Text(stringResource(R.string.save))
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Button(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         }
-    )
+    }
 }
