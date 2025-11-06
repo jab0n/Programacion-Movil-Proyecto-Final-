@@ -40,6 +40,7 @@ import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Task
+import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TaskDetails
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
 import java.util.Calendar
 
@@ -48,8 +49,6 @@ import java.util.Calendar
 fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
-    var showEditDialog by remember { mutableStateOf(false) }
-    var taskToEdit by remember { mutableStateOf<Task?>(null) }
 
     Scaffold(
         topBar = {
@@ -69,10 +68,7 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
                     isExpanded = isExpanded,
                     onExpand = { isExpanded = !isExpanded },
                     onDelete = { viewModel.delete(it) },
-                    onEdit = { 
-                        taskToEdit = it
-                        showEditDialog = true
-                    },
+                    onEdit = { viewModel.startEditingTask(it) },
                     onCheckChange = { isChecked ->
                         viewModel.update(it.copy(isCompleted = isChecked))
                     }
@@ -81,14 +77,16 @@ fun TasksScreen(application: NotesAndTasksApplication, onAddTask: () -> Unit) {
         }
     }
 
-    if (showEditDialog) {
+    if (uiState.isEditingTask) {
         EditTaskDialog(
-            task = taskToEdit!!,
-            onDismiss = { showEditDialog = false },
-            onConfirm = { 
-                viewModel.update(it)
-                showEditDialog = false
-            }
+            taskDetails = uiState.taskDetails,
+            onDismiss = { viewModel.stopEditingTask() },
+            onConfirm = { viewModel.update() },
+            onTitleChange = viewModel::onTitleChange,
+            onContentChange = viewModel::onContentChange,
+            onDateChange = viewModel::onDateChange,
+            onTimeChange = viewModel::onTimeChange,
+            onCompletedChange = viewModel::onCompletedChange
         )
     }
 }
@@ -129,31 +127,32 @@ fun TaskItem(task: Task, isExpanded: Boolean, onExpand: () -> Unit, onDelete: ()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit) {
-    var title by remember { mutableStateOf(task.title) }
-    var content by remember { mutableStateOf(task.content) }
-    var date by remember { mutableStateOf(task.date) } // Se guarda como YYYY-MM-DD
-    var time by remember { mutableStateOf(task.time) }
-    var isCompleted by remember { mutableStateOf(task.isCompleted) }
-
+fun EditTaskDialog(
+    taskDetails: TaskDetails,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    onTitleChange: (String) -> Unit,
+    onContentChange: (String) -> Unit,
+    onDateChange: (String) -> Unit,
+    onTimeChange: (String) -> Unit,
+    onCompletedChange: (Boolean) -> Unit
+) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
     
-    // Configurar el calendario con la fecha existente si está en el formato correcto
-    if (date.isNotEmpty()) {
+    if (taskDetails.date.isNotEmpty()) {
         try {
-            val parts = date.split("-").map { it.toInt() }
+            val parts = taskDetails.date.split("-").map { it.toInt() }
             if (parts.size == 3) {
                 calendar.set(parts[0], parts[1] - 1, parts[2])
             }
-        } catch (e: Exception) { /* Ignorar errores de formato antiguo */ }
+        } catch (e: Exception) { /* Ignore parsing errors for old formats */ }
     }
 
     val datePickerDialog = DatePickerDialog(
         context,
         { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
-            // Guardar en formato ordenable
-            date = "%d-%02d-%02d".format(year, month + 1, dayOfMonth)
+            onDateChange("%d-%02d-%02d".format(year, month + 1, dayOfMonth))
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
@@ -163,7 +162,7 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
     val timePickerDialog = TimePickerDialog(
         context,
         { _, hourOfDay: Int, minute: Int ->
-            time = "%02d:%02d".format(hourOfDay, minute)
+            onTimeChange("%02d:%02d".format(hourOfDay, minute))
         },
         calendar.get(Calendar.HOUR_OF_DAY),
         calendar.get(Calendar.MINUTE),
@@ -176,13 +175,13 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
         text = {
             Column {
                 OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
+                    value = taskDetails.title,
+                    onValueChange = onTitleChange,
                     label = { Text(stringResource(R.string.title)) }
                 )
                 OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
+                    value = taskDetails.content,
+                    onValueChange = onContentChange,
                     label = { Text(stringResource(R.string.content)) }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -190,29 +189,26 @@ fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (Task) -> Unit)
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    // Formatear para mostrar al usuario
-                    val displayDate = remember(date) {
-                        val parts = date.split("-")
-                        if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else date
+                    val displayDate = remember(taskDetails.date) {
+                        val parts = taskDetails.date.split("-")
+                        if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
                     }
                     Button(onClick = { datePickerDialog.show() }) {
                         Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
                     }
                     Button(onClick = { timePickerDialog.show() }) {
-                        Text(text = time.ifEmpty { stringResource(R.string.select_time) })
+                        Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row {
-                    Checkbox(checked = isCompleted, onCheckedChange = { isCompleted = it })
+                    Checkbox(checked = taskDetails.isCompleted, onCheckedChange = onCompletedChange)
                     Text(text = stringResource(R.string.completed))
                 }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onConfirm(task.copy(title = title, content = content, isCompleted = isCompleted, date = date, time = time))
-            }) {
+            Button(onClick = onConfirm) {
                 Text(stringResource(R.string.save))
             }
         },

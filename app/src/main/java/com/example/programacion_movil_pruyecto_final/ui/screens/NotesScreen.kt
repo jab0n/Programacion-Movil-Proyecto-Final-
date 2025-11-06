@@ -32,6 +32,7 @@ import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Note
+import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NoteDetails
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,8 +40,6 @@ import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewMode
 fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
-    var showEditDialog by remember { mutableStateOf(false) }
-    var noteToEdit by remember { mutableStateOf<Note?>(null) }
 
     Scaffold(
         topBar = {
@@ -60,23 +59,19 @@ fun NotesScreen(application: NotesAndTasksApplication, onAddNote: () -> Unit) {
                     isExpanded = isExpanded,
                     onExpand = { isExpanded = !isExpanded },
                     onDelete = { viewModel.delete(note) },
-                    onEdit = {
-                        noteToEdit = note
-                        showEditDialog = true
-                    }
+                    onEdit = { viewModel.startEditingNote(note) }
                 )
             }
         }
     }
 
-    if (showEditDialog) {
+    if (uiState.isEditingNote) {
         EditNoteDialog(
-            note = noteToEdit!!,
-            onDismiss = { showEditDialog = false },
-            onConfirm = {
-                viewModel.update(it)
-                showEditDialog = false
-            }
+            noteDetails = uiState.noteDetails,
+            onDismiss = { viewModel.stopEditingNote() },
+            onConfirm = { viewModel.update() },
+            onTitleChange = viewModel::onTitleChange,
+            onContentChange = viewModel::onContentChange
         )
     }
 }
@@ -108,31 +103,32 @@ fun NoteItem(note: Note, isExpanded: Boolean, onExpand: () -> Unit, onDelete: ()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditNoteDialog(note: Note, onDismiss: () -> Unit, onConfirm: (Note) -> Unit) {
-    var title by remember { mutableStateOf(note.title) }
-    var content by remember { mutableStateOf(note.content) }
-
+fun EditNoteDialog(
+    noteDetails: NoteDetails,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    onTitleChange: (String) -> Unit,
+    onContentChange: (String) -> Unit
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.edit_note)) },
         text = {
             Column {
                 OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
+                    value = noteDetails.title,
+                    onValueChange = onTitleChange,
                     label = { Text(stringResource(R.string.title)) }
                 )
                 OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
+                    value = noteDetails.content,
+                    onValueChange = onContentChange,
                     label = { Text(stringResource(R.string.content)) }
                 )
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onConfirm(note.copy(title = title, content = content))
-            }) {
+            Button(onClick = onConfirm) {
                 Text(stringResource(R.string.save))
             }
         },

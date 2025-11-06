@@ -16,7 +16,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -24,15 +27,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
-import com.example.programacion_movil_pruyecto_final.data.Note
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> Unit) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
+    val noteDetails = uiState.noteDetails
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearNoteDetails() }
+    }
 
     Scaffold(
         topBar = {
@@ -56,15 +62,15 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
                 .padding(16.dp)
         ) {
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
+                value = noteDetails.title,
+                onValueChange = { viewModel.onTitleChange(it) },
                 label = { Text(stringResource(R.string.title)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = content,
-                onValueChange = { content = it },
+                value = noteDetails.content,
+                onValueChange = { viewModel.onContentChange(it) },
                 label = { Text(stringResource(R.string.content)) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -72,7 +78,7 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
-                viewModel.insert(Note(title = title, content = content))
+                viewModel.insert()
                 onNavigateBack()
             }) {
                 Text(stringResource(R.string.save))
