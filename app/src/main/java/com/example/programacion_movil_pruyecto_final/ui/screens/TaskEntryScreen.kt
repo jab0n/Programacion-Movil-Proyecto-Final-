@@ -1,10 +1,16 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
 import android.Manifest
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.DatePicker
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,10 +19,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -36,19 +46,27 @@ import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.media.AudioRecorder
-import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
+import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> Unit) {
-    val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
+fun TaskEntryScreen(
+    application: NotesAndTasksApplication, 
+    onNavigateBack: () -> Unit,
+    taskId: Int? = null
+) {
+    val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
-    val noteDetails = uiState.noteDetails
+    val taskDetails = uiState.taskDetails
+
+    LaunchedEffect(taskId) {
+        taskId?.let { viewModel.loadTaskForEditing(it) }
+    }
 
     val context = LocalContext.current
     var tempUri by remember { mutableStateOf<Uri?>(null) }
@@ -89,7 +107,6 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
         ).also { tempUri = it }
     }
 
-    // --- PERMISSION HANDLING LOGIC ---
     var actionToLaunch by remember { mutableStateOf<String?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -111,16 +128,14 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
                     audioFile?.let { audioRecorder.start(it) }
                 }
             }
-        } else {
-            // Handle permission denial
         }
-        actionToLaunch = null // Reset
+        actionToLaunch = null
     }
 
     fun launchWithPermission(permission: String, action: String) {
         when (ContextCompat.checkSelfPermission(context, permission)) {
             PackageManager.PERMISSION_GRANTED -> {
-                 when (action) {
+                when (action) {
                     "photo" -> {
                         val uri = createFileUri(createFile("jpg"))
                         takePicture.launch(uri)
@@ -143,9 +158,30 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
         }
     }
 
+    val calendar = Calendar.getInstance()
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
+            viewModel.onDateChange("%d-%02d-%02d".format(year, month + 1, dayOfMonth))
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, hourOfDay: Int, minute: Int ->
+            viewModel.onTimeChange("%02d:%02d".format(hourOfDay, minute))
+        },
+        calendar.get(Calendar.HOUR_OF_DAY),
+        calendar.get(Calendar.MINUTE),
+        true
+    )
+
     DisposableEffect(Unit) {
         onDispose { 
-            viewModel.clearNoteDetails()
+            viewModel.clearTaskDetails()
             audioRecorder.stop()
         }
     }
@@ -153,7 +189,7 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.add_note)) },
+                title = { Text(stringResource(if (taskId == null) R.string.add_task else R.string.edit_task)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -172,20 +208,41 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
                 .padding(16.dp)
         ) {
             OutlinedTextField(
-                value = noteDetails.title,
+                value = taskDetails.title,
                 onValueChange = { viewModel.onTitleChange(it) },
                 label = { Text(stringResource(R.string.title)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = noteDetails.content,
+                value = taskDetails.content,
                 onValueChange = { viewModel.onContentChange(it) },
                 label = { Text(stringResource(R.string.content)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                val displayDate = remember(taskDetails.date) {
+                    val parts = taskDetails.date.split("-")
+                    if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
+                }
+                Button(onClick = { datePickerDialog.show() }) {
+                    Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
+                }
+                Button(onClick = { timePickerDialog.show() }) {
+                    Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
+                }
+            }
+             Spacer(modifier = Modifier.height(16.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = taskDetails.isCompleted, onCheckedChange = { viewModel.onCompletedChange(it) })
+                Text(text = stringResource(R.string.completed))
+            }
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
                 Button(onClick = { getContent.launch("*/*") }) {
@@ -216,21 +273,31 @@ fun AddNoteScreen(application: NotesAndTasksApplication, onNavigateBack: () -> U
                 }
             }
 
-            // Display newly selected attachments
-            if (uiState.newAttachments.isNotEmpty()) {
+            // Display attachments
+            if (taskDetails.attachments.isNotEmpty() || uiState.newAttachments.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Attachments:")
+                taskDetails.attachments.forEach { attachment ->
+                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Text(text = attachment.uri.substringAfterLast('/'), modifier = Modifier.weight(1f))
+                        IconButton(onClick = { viewModel.removeExistingAttachment(attachment) }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+                        }
+                    }
+                }
                 uiState.newAttachments.forEach { (uri, _) ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AttachFile, contentDescription = null)
-                        Text(text = uri.path?.substringAfterLast('/') ?: "unknown file")
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Text(text = uri.path?.substringAfterLast('/') ?: "unknown file", modifier = Modifier.weight(1f))
+                        IconButton(onClick = { viewModel.removeAttachment(uri) }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
-                viewModel.insert()
+                viewModel.save()
                 onNavigateBack()
             }) {
                 Text(stringResource(R.string.save))

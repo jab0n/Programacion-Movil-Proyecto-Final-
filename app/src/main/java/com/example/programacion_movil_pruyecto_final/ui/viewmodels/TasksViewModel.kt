@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -49,7 +50,7 @@ data class TasksUiState(
     val taskDetails: TaskDetails = TaskDetails(),
     val isEditingTask: Boolean = false,
     val expandedTaskIds: Set<Int> = emptySet(),
-    val newAttachments: MutableList<Pair<Uri, String?>> = mutableListOf()
+    val newAttachments: List<Pair<Uri, String?>> = emptyList()
 )
 
 class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
@@ -57,7 +58,7 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
     private val _taskDetails = MutableStateFlow(TaskDetails())
     private val _isEditingTask = MutableStateFlow(false)
     private val _expandedTaskIds = MutableStateFlow(emptySet<Int>())
-    private val _newAttachments = MutableStateFlow<MutableList<Pair<Uri, String?>>>(mutableListOf())
+    private val _newAttachments = MutableStateFlow<List<Pair<Uri, String?>>>(emptyList())
 
     val uiState: StateFlow<TasksUiState> = combine(
         repository.allTasks,
@@ -78,6 +79,14 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = TasksUiState()
     )
+
+    fun loadTaskForEditing(taskId: Int) {
+        viewModelScope.launch {
+            repository.getTaskById(taskId).firstOrNull()?.let { 
+                _taskDetails.value = it.toTaskDetails()
+            }
+        }
+    }
 
     fun onTitleChange(title: String) {
         _taskDetails.update { it.copy(title = title) }
@@ -100,7 +109,24 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
     }
 
     fun onAttachmentSelected(uri: Uri?, type: String?) {
-        uri?.let { _newAttachments.value.add(it to type) }
+        uri?.let { 
+            _newAttachments.update { currentList -> currentList + (it to type) }
+        }
+    }
+
+    fun removeAttachment(uri: Uri) {
+        _newAttachments.update { currentList ->
+            currentList.filterNot { it.first == uri }
+        }
+    }
+
+    fun removeExistingAttachment(attachment: Attachment) {
+        viewModelScope.launch {
+            repository.deleteAttachment(attachment)
+            _taskDetails.update { 
+                it.copy(attachments = it.attachments.filterNot { it.id == attachment.id }) 
+            }
+        }
     }
     
     fun toggleTaskExpansion(taskId: Int) {
@@ -129,10 +155,18 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
 
     fun clearTaskDetails() {
         _taskDetails.value = TaskDetails()
-        _newAttachments.value.clear()
+        _newAttachments.value = emptyList()
     }
 
-    fun insert() = viewModelScope.launch {
+    fun save() {
+        if (_taskDetails.value.id == 0) {
+            insert()
+        } else {
+            update()
+        }
+    }
+
+    private fun insert() = viewModelScope.launch {
         val attachments = _newAttachments.value.map { (uri, type) ->
             Attachment(noteId = null, taskId = 0, uri = uri.toString(), type = type ?: "")
         }
@@ -140,10 +174,13 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
         clearTaskDetails()
     }
 
-    fun update() = viewModelScope.launch {
+    private fun update() = viewModelScope.launch {
+        val newAttachments = _newAttachments.value.map { (uri, type) ->
+            Attachment(noteId = null, taskId = _taskDetails.value.id, uri = uri.toString(), type = type ?: "")
+        }
         repository.update(_taskDetails.value.toTask())
-        // TODO: Handle updating attachments
-        stopEditingTask()
+        repository.insertAttachments(newAttachments)
+        clearTaskDetails()
     }
 
     fun update(task: Task) = viewModelScope.launch {

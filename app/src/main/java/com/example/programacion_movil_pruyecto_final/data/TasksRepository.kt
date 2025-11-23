@@ -8,6 +8,8 @@ interface ITasksRepository {
     suspend fun insert(task: Task, attachments: List<Attachment>)
     suspend fun update(task: Task)
     suspend fun delete(task: Task)
+    suspend fun deleteAttachment(attachment: Attachment)
+    suspend fun insertAttachments(attachments: List<Attachment>)
 }
 
 class TasksRepository(private val taskDao: TaskDao) : ITasksRepository {
@@ -28,5 +30,13 @@ class TasksRepository(private val taskDao: TaskDao) : ITasksRepository {
 
     override suspend fun delete(task: Task) {
         taskDao.deleteTask(task)
+    }
+
+    override suspend fun deleteAttachment(attachment: Attachment) {
+        taskDao.deleteAttachment(attachment)
+    }
+
+    override suspend fun insertAttachments(attachments: List<Attachment>) {
+        taskDao.insertAttachments(attachments)
     }
 }

@@ -31,6 +31,9 @@ interface TaskDao {
     @Delete
     suspend fun deleteTask(task: Task)
 
+    @Delete
+    suspend fun deleteAttachment(attachment: Attachment)
+
     @Transaction
     @Query("SELECT * FROM tasks WHERE id = :id")
     fun getTaskById(id: Int): Flow<TaskWithAttachments>

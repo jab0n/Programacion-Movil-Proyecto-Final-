@@ -8,6 +8,8 @@ interface INotesRepository {
     suspend fun insert(note: Note, attachments: List<Attachment>)
     suspend fun update(note: Note)
     suspend fun delete(note: Note)
+    suspend fun deleteAttachment(attachment: Attachment)
+    suspend fun insertAttachments(attachments: List<Attachment>)
 }
 
 class NotesRepository(private val noteDao: NoteDao) : INotesRepository {
@@ -28,5 +30,13 @@ class NotesRepository(private val noteDao: NoteDao) : INotesRepository {
 
     override suspend fun delete(note: Note) {
         noteDao.deleteNote(note)
+    }
+
+    override suspend fun deleteAttachment(attachment: Attachment) {
+        noteDao.deleteAttachment(attachment)
+    }
+
+    override suspend fun insertAttachments(attachments: List<Attachment>) {
+        noteDao.insertAttachments(attachments)
     }
 }

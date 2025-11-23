@@ -31,6 +31,9 @@ interface NoteDao {
     @Delete
     suspend fun deleteNote(note: Note)
 
+    @Delete
+    suspend fun deleteAttachment(attachment: Attachment)
+
     @Transaction
     @Query("SELECT * FROM notes WHERE id = :id")
     fun getNoteById(id: Int): Flow<NoteWithAttachments>

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -38,29 +39,25 @@ fun NoteDetails.toNote(): Note = Note(
 data class NotesUiState(
     val noteList: List<NoteWithAttachments> = listOf(),
     val noteDetails: NoteDetails = NoteDetails(),
-    val isEditingNote: Boolean = false,
     val expandedNoteIds: Set<Int> = emptySet(),
-    val newAttachments: MutableList<Pair<Uri, String?>> = mutableListOf()
+    val newAttachments: List<Pair<Uri, String?>> = emptyList()
 )
 
 class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
 
     private val _noteDetails = MutableStateFlow(NoteDetails())
-    private val _isEditingNote = MutableStateFlow(false)
     private val _expandedNoteIds = MutableStateFlow(emptySet<Int>())
-    private val _newAttachments = MutableStateFlow<MutableList<Pair<Uri, String?>>>(mutableListOf())
+    private val _newAttachments = MutableStateFlow<List<Pair<Uri, String?>>>(emptyList())
 
     val uiState: StateFlow<NotesUiState> = combine(
         repository.allNotes,
         _noteDetails,
-        _isEditingNote,
         _expandedNoteIds,
         _newAttachments
-    ) { notes, details, isEditing, expandedIds, newAttachments ->
+    ) { notes, details, expandedIds, newAttachments ->
         NotesUiState(
             noteList = notes,
             noteDetails = details,
-            isEditingNote = isEditing,
             expandedNoteIds = expandedIds,
             newAttachments = newAttachments
         )
@@ -69,6 +66,14 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = NotesUiState()
     )
+
+    fun loadNote(noteId: Int) {
+        viewModelScope.launch {
+            repository.getNoteById(noteId).firstOrNull()?.let {
+                _noteDetails.value = it.toNoteDetails()
+            }
+        }
+    }
 
     fun onTitleChange(title: String) {
         _noteDetails.update { it.copy(title = title) }
@@ -79,7 +84,24 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
     }
 
     fun onAttachmentSelected(uri: Uri?, type: String?) {
-        uri?.let { _newAttachments.value.add(it to type) }
+        uri?.let { 
+            _newAttachments.update { currentList -> currentList + (it to type) }
+        }
+    }
+
+    fun removeAttachment(uri: Uri) {
+        _newAttachments.update { currentList ->
+            currentList.filterNot { it.first == uri }
+        }
+    }
+
+    fun removeExistingAttachment(attachment: Attachment) {
+        viewModelScope.launch {
+            repository.deleteAttachment(attachment)
+            _noteDetails.update { 
+                it.copy(attachments = it.attachments.filterNot { it.id == attachment.id }) 
+            }
+        }
     }
 
     fun toggleNoteExpansion(noteId: Int) {
@@ -92,26 +114,20 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         }
     }
 
-    fun startEditingNote(note: NoteWithAttachments) {
-        if (_isEditingNote.value && _noteDetails.value.id == note.note.id) {
-            stopEditingNote()
+    fun clearNoteDetails() {
+        _noteDetails.value = NoteDetails()
+        _newAttachments.value = emptyList()
+    }
+
+    fun save() {
+        if (_noteDetails.value.id == 0) {
+            insert()
         } else {
-            _isEditingNote.value = true
-            _noteDetails.value = note.toNoteDetails()
+            update()
         }
     }
 
-    fun stopEditingNote() {
-        _isEditingNote.value = false
-        clearNoteDetails()
-    }
-
-    fun clearNoteDetails() {
-        _noteDetails.value = NoteDetails()
-        _newAttachments.value.clear()
-    }
-
-    fun insert() = viewModelScope.launch {
+    private fun insert() = viewModelScope.launch {
         val attachments = _newAttachments.value.map { (uri, type) ->
             Attachment(noteId = 0, taskId = null, uri = uri.toString(), type = type ?: "")
         }
@@ -119,10 +135,13 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         clearNoteDetails()
     }
 
-    fun update() = viewModelScope.launch {
+    private fun update() = viewModelScope.launch {
+        val newAttachments = _newAttachments.value.map { (uri, type) ->
+            Attachment(noteId = _noteDetails.value.id, taskId = null, uri = uri.toString(), type = type ?: "")
+        }
         repository.update(_noteDetails.value.toNote())
-        // TODO: Handle updating attachments
-        stopEditingNote()
+        repository.insertAttachments(newAttachments)
+        clearNoteDetails()
     }
 
     fun delete(note: Note) = viewModelScope.launch {
