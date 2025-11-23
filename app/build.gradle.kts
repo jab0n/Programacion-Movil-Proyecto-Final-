@@ -75,6 +75,9 @@ dependencies {
     implementation("androidx.glance:glance:1.2.0-beta01")
     implementation("androidx.glance:glance-appwidget:1.2.0-beta01")
 
+    // Coil
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     // Pruebas
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

@@ -1,11 +1,12 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.widget.DatePicker
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -35,17 +37,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
-import com.example.programacion_movil_pruyecto_final.data.Task
+import com.example.programacion_movil_pruyecto_final.data.TaskWithAttachments
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TaskDetails
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
-import java.util.Calendar
 import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,15 +75,15 @@ fun TasksScreen(
         if (isExpandedScreen) {
             Row(modifier = Modifier.padding(padding)) {
                 LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(uiState.taskList) { task ->
+                    items(uiState.taskList) { taskWithAttachments ->
                         TaskItem(
-                            task = task,
-                            isExpanded = task.id in uiState.expandedTaskIds,
-                            onClick = { viewModel.toggleTaskExpansion(task.id) },
-                            onDelete = { viewModel.delete(task) },
-                            onEdit = { viewModel.startEditingTask(task) },
+                            taskWithAttachments = taskWithAttachments,
+                            isExpanded = taskWithAttachments.task.id in uiState.expandedTaskIds,
+                            onClick = { viewModel.toggleTaskExpansion(taskWithAttachments.task.id) },
+                            onDelete = { viewModel.delete(taskWithAttachments.task) },
+                            onEdit = { viewModel.startEditingTask(taskWithAttachments) },
                             onCheckChange = { isChecked ->
-                                viewModel.update(task.copy(isCompleted = isChecked))
+                                viewModel.update(taskWithAttachments.task.copy(isCompleted = isChecked))
                             }
                         )
                     }
@@ -94,21 +98,22 @@ fun TasksScreen(
                         onContentChange = viewModel::onContentChange,
                         onDateChange = viewModel::onDateChange,
                         onTimeChange = viewModel::onTimeChange,
-                        onCompletedChange = viewModel::onCompletedChange
+                        onCompletedChange = viewModel::onCompletedChange,
+                        onAttachmentSelected = viewModel::onAttachmentSelected
                     )
                 }
             }
         } else {
             LazyColumn(modifier = Modifier.padding(padding)) {
-                items(uiState.taskList) { task ->
+                items(uiState.taskList) { taskWithAttachments ->
                     TaskItem(
-                        task = task,
-                        isExpanded = task.id in uiState.expandedTaskIds,
-                        onClick = { viewModel.toggleTaskExpansion(task.id) },
-                        onDelete = { viewModel.delete(task) },
-                        onEdit = { viewModel.startEditingTask(task) },
+                        taskWithAttachments = taskWithAttachments,
+                        isExpanded = taskWithAttachments.task.id in uiState.expandedTaskIds,
+                        onClick = { viewModel.toggleTaskExpansion(taskWithAttachments.task.id) },
+                        onDelete = { viewModel.delete(taskWithAttachments.task) },
+                        onEdit = { viewModel.startEditingTask(taskWithAttachments) },
                         onCheckChange = { isChecked ->
-                            viewModel.update(task.copy(isCompleted = isChecked))
+                            viewModel.update(taskWithAttachments.task.copy(isCompleted = isChecked))
                         }
                     )
                 }
@@ -123,7 +128,8 @@ fun TasksScreen(
                     onContentChange = viewModel::onContentChange,
                     onDateChange = viewModel::onDateChange,
                     onTimeChange = viewModel::onTimeChange,
-                    onCompletedChange = viewModel::onCompletedChange
+                    onCompletedChange = viewModel::onCompletedChange,
+                    onAttachmentSelected = viewModel::onAttachmentSelected
                 )
             }
         }
@@ -131,14 +137,8 @@ fun TasksScreen(
 }
 
 @Composable
-fun TaskItem(
-    task: Task, 
-    isExpanded: Boolean, 
-    onClick: () -> Unit, 
-    onDelete: () -> Unit, 
-    onEdit: () -> Unit, 
-    onCheckChange: (Boolean) -> Unit
-) {
+fun TaskItem(taskWithAttachments: TaskWithAttachments, isExpanded: Boolean, onClick: () -> Unit, onDelete: () -> Unit, onEdit: () -> Unit, onCheckChange: (Boolean) -> Unit) {
+    val task = taskWithAttachments.task
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -165,7 +165,27 @@ fun TaskItem(
                 }
             }
             AnimatedVisibility(visible = isExpanded) {
-                Text(text = task.content, modifier = Modifier.padding(top = 8.dp))
+                Column {
+                    Text(text = task.content, modifier = Modifier.padding(top = 8.dp))
+                    taskWithAttachments.attachments.forEach { attachment ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        if (attachment.type.startsWith("image/")) {
+                            AsyncImage(
+                                model = attachment.uri,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                                Text(text = attachment.uri.substringAfterLast("/"))
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -183,39 +203,15 @@ fun TaskDetailPanel(
     onContentChange: (String) -> Unit,
     onDateChange: (String) -> Unit,
     onTimeChange: (String) -> Unit,
-    onCompletedChange: (Boolean) -> Unit
+    onCompletedChange: (Boolean) -> Unit,
+    onAttachmentSelected: (Uri?, String?) -> Unit
 ) {
     val context = LocalContext.current
-    val calendar = Calendar.getInstance()
-    
-    if (taskDetails.date.isNotEmpty()) {
-        try {
-            val parts = taskDetails.date.split("-").map { it.toInt() }
-            if (parts.size == 3) {
-                calendar.set(parts[0], parts[1] - 1, parts[2])
-            }
-        } catch (e: Exception) { /* Ignore parsing errors for old formats */ }
+
+    val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        val type = uri?.let { context.contentResolver.getType(it) }
+        onAttachmentSelected(uri, type)
     }
-
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
-            onDateChange("%d-%02d-%02d".format(year, month + 1, dayOfMonth))
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
-
-    val timePickerDialog = TimePickerDialog(
-        context,
-        { _, hourOfDay: Int, minute: Int ->
-            onTimeChange("%02d:%02d".format(hourOfDay, minute))
-        },
-        calendar.get(Calendar.HOUR_OF_DAY),
-        calendar.get(Calendar.MINUTE),
-        true
-    )
 
     if (isDialog) {
         AlertDialog(
@@ -237,25 +233,11 @@ fun TaskDetailPanel(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        val displayDate = remember(taskDetails.date) {
-                            val parts = taskDetails.date.split("-")
-                            if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
-                        }
-                        Button(onClick = { datePickerDialog.show() }) {
-                            Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
-                        }
-                        Button(onClick = { timePickerDialog.show() }) {
-                            Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
-                        }
+                    Button(onClick = { getContent.launch("*/*") }) {
+                        Text(text = stringResource(R.string.attach_file))
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = taskDetails.isCompleted, onCheckedChange = onCompletedChange)
-                        Text(text = stringResource(R.string.completed))
+                    taskDetails.attachments.forEach { attachment ->
+                        Text(text = attachment.uri.substringAfterLast("/"))
                     }
                 }
             },
@@ -290,25 +272,11 @@ fun TaskDetailPanel(
                     modifier = Modifier.fillMaxWidth().height(200.dp) // Maintain a reasonable default size
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    val displayDate = remember(taskDetails.date) {
-                        val parts = taskDetails.date.split("-")
-                        if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
-                    }
-                    Button(onClick = { datePickerDialog.show() }) {
-                        Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
-                    }
-                    Button(onClick = { timePickerDialog.show() }) {
-                        Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
-                    }
+                Button(onClick = { getContent.launch("*/*") }) {
+                    Text(text = stringResource(R.string.attach_file))
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = taskDetails.isCompleted, onCheckedChange = onCompletedChange)
-                    Text(text = stringResource(R.string.completed))
+                 taskDetails.attachments.forEach { attachment ->
+                    Text(text = attachment.uri.substringAfterLast("/"))
                 }
             }
             // Sticky action buttons at the bottom

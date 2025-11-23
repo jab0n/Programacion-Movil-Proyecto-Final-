@@ -3,23 +3,23 @@ package com.example.programacion_movil_pruyecto_final.data
 import kotlinx.coroutines.flow.Flow
 
 interface INotesRepository {
-    val allNotes: Flow<List<Note>>
-    fun getNoteById(id: Int): Flow<Note>
-    suspend fun insert(note: Note)
+    val allNotes: Flow<List<NoteWithAttachments>>
+    fun getNoteById(id: Int): Flow<NoteWithAttachments>
+    suspend fun insert(note: Note, attachments: List<Attachment>)
     suspend fun update(note: Note)
     suspend fun delete(note: Note)
 }
 
 class NotesRepository(private val noteDao: NoteDao) : INotesRepository {
 
-    override val allNotes: Flow<List<Note>> = noteDao.getAllNotes()
+    override val allNotes: Flow<List<NoteWithAttachments>> = noteDao.getAllNotes()
 
-    override fun getNoteById(id: Int): Flow<Note> {
+    override fun getNoteById(id: Int): Flow<NoteWithAttachments> {
         return noteDao.getNoteById(id)
     }
 
-    override suspend fun insert(note: Note) {
-        noteDao.insertNote(note)
+    override suspend fun insert(note: Note, attachments: List<Attachment>) {
+        noteDao.insertNoteWithAttachments(note, attachments)
     }
 
     override suspend fun update(note: Note) {
