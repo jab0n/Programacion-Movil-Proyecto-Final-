@@ -1,15 +1,23 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
@@ -23,9 +31,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
@@ -38,7 +49,7 @@ fun NotesScreen(
     application: NotesAndTasksApplication, 
     onAddNote: () -> Unit, 
     onEditNote: (Int) -> Unit,
-    isExpandedScreen: Boolean // This can be removed if not used for master-detail anymore
+    isExpandedScreen: Boolean
 ) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
@@ -76,6 +87,8 @@ fun NoteItem(
     onEdit: () -> Unit
 ) {
     val note = noteWithAttachments.note
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -93,8 +106,40 @@ fun NoteItem(
                 }
             }
             AnimatedVisibility(visible = isExpanded) {
-                // TODO: Display attachments here
-                Text(text = note.content, modifier = Modifier.padding(top = 8.dp))
+                Column {
+                    Text(text = note.content, modifier = Modifier.padding(top = 8.dp))
+                    noteWithAttachments.attachments.forEach { attachment ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().clickable { 
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    val uri = Uri.parse(attachment.uri)
+                                    setDataAndType(uri, attachment.type)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, context.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show()
+                                }
+                            }.padding(vertical = 4.dp)
+                        ) {
+                            if (attachment.type.startsWith("image/")) {
+                                AsyncImage(
+                                    model = attachment.uri,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = attachment.uri.substringAfterLast("/"))
+                        }
+                    }
+                }
             }
         }
     }
