@@ -60,7 +60,7 @@ fun TaskEntryScreen(
     onNavigateBack: () -> Unit,
     taskId: Int? = null
 ) {
-    val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
+    val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
     val taskDetails = uiState.taskDetails
 

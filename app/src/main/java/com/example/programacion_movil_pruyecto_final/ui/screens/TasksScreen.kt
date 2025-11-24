@@ -52,7 +52,7 @@ fun TasksScreen(
     onEditTask: (Int) -> Unit,
     isExpandedScreen: Boolean
 ) {
-    val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
+    val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(

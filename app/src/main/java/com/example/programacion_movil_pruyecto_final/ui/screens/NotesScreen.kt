@@ -51,7 +51,7 @@ fun NotesScreen(
     onEditNote: (Int) -> Unit,
     isExpandedScreen: Boolean
 ) {
-    val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
+    val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(

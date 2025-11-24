@@ -55,7 +55,7 @@ fun NoteEntryScreen(
     onNavigateBack: () -> Unit,
     noteId: Int? = null
 ) {
-    val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application.notesRepository, application.tasksRepository))
+    val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
     val noteDetails = uiState.noteDetails
 

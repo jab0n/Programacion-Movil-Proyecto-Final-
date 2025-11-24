@@ -26,4 +26,6 @@
     <string name="stop_recording">Stop Recording</string>
     <string name="no_app_found">No app found to open this file.</string>
     <string name="remove_attachment">Remove attachment</string>
+    <string name="task_notification_channel_name">Task Reminders</string>
+    <string name="task_notification_channel_description">Notifications for pending tasks.</string>
 </resources>

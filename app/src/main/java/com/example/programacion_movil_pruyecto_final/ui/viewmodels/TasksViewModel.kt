@@ -1,12 +1,14 @@
 package com.example.programacion_movil_pruyecto_final.ui.viewmodels
 
+import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.programacion_movil_pruyecto_final.data.Attachment
 import com.example.programacion_movil_pruyecto_final.data.ITasksRepository
 import com.example.programacion_movil_pruyecto_final.data.Task
 import com.example.programacion_movil_pruyecto_final.data.TaskWithAttachments
+import com.example.programacion_movil_pruyecto_final.notifications.TaskNotificationScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -48,29 +50,27 @@ fun TaskDetails.toTask(): Task = Task(
 data class TasksUiState(
     val taskList: List<TaskWithAttachments> = listOf(),
     val taskDetails: TaskDetails = TaskDetails(),
-    val isEditingTask: Boolean = false,
     val expandedTaskIds: Set<Int> = emptySet(),
     val newAttachments: List<Pair<Uri, String?>> = emptyList()
 )
 
-class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
+class TasksViewModel(application: Application, private val repository: ITasksRepository) : AndroidViewModel(application) {
+
+    private val scheduler = TaskNotificationScheduler(application)
 
     private val _taskDetails = MutableStateFlow(TaskDetails())
-    private val _isEditingTask = MutableStateFlow(false)
     private val _expandedTaskIds = MutableStateFlow(emptySet<Int>())
     private val _newAttachments = MutableStateFlow<List<Pair<Uri, String?>>>(emptyList())
 
     val uiState: StateFlow<TasksUiState> = combine(
         repository.allTasks,
         _taskDetails,
-        _isEditingTask,
         _expandedTaskIds,
         _newAttachments
-    ) { tasks, details, isEditing, expandedIds, newAttachments ->
+    ) { tasks, details, expandedIds, newAttachments ->
         TasksUiState(
             taskList = tasks,
             taskDetails = details,
-            isEditingTask = isEditing,
             expandedTaskIds = expandedIds,
             newAttachments = newAttachments
         )
@@ -139,20 +139,6 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
         }
     }
 
-    fun startEditingTask(task: TaskWithAttachments) {
-        if (_isEditingTask.value && _taskDetails.value.id == task.task.id) {
-            stopEditingTask()
-        } else {
-            _isEditingTask.value = true
-            _taskDetails.value = task.toTaskDetails()
-        }
-    }
-
-    fun stopEditingTask() {
-        _isEditingTask.value = false
-        clearTaskDetails()
-    }
-
     fun clearTaskDetails() {
         _taskDetails.value = TaskDetails()
         _newAttachments.value = emptyList()
@@ -167,27 +153,41 @@ class TasksViewModel(private val repository: ITasksRepository) : ViewModel() {
     }
 
     private fun insert() = viewModelScope.launch {
+        val task = _taskDetails.value.toTask()
         val attachments = _newAttachments.value.map { (uri, type) ->
             Attachment(noteId = null, taskId = 0, uri = uri.toString(), type = type ?: "")
         }
-        repository.insert(_taskDetails.value.toTask(), attachments)
+        repository.insert(task, attachments)
+        scheduler.schedule(task)
         clearTaskDetails()
     }
 
     private fun update() = viewModelScope.launch {
+        val task = _taskDetails.value.toTask()
         val newAttachments = _newAttachments.value.map { (uri, type) ->
             Attachment(noteId = null, taskId = _taskDetails.value.id, uri = uri.toString(), type = type ?: "")
         }
-        repository.update(_taskDetails.value.toTask())
+        repository.update(task)
         repository.insertAttachments(newAttachments)
+        if (!task.isCompleted) {
+            scheduler.schedule(task)
+        } else {
+            scheduler.cancel(task.id)
+        }
         clearTaskDetails()
     }
 
     fun update(task: Task) = viewModelScope.launch {
         repository.update(task)
+         if (!task.isCompleted) {
+            scheduler.schedule(task)
+        } else {
+            scheduler.cancel(task.id)
+        }
     }
 
     fun delete(task: Task) = viewModelScope.launch {
         repository.delete(task)
+        scheduler.cancel(task.id)
     }
 }
