@@ -28,4 +28,5 @@
     <string name="remove_attachment">Quitar adjunto</string>
     <string name="task_notification_channel_name">Recordatorios de Tareas</string>
     <string name="task_notification_channel_description">Notificaciones para tareas pendientes.</string>
+    <string name="exact_alarm_permission_required">Se necesita permiso para programar alarmas exactas. Por favor, habilítelo en los ajustes.</string>
 </resources>

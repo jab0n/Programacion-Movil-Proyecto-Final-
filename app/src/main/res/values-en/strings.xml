@@ -28,4 +28,5 @@
     <string name="remove_attachment">Remove attachment</string>
     <string name="task_notification_channel_name">Task Reminders</string>
     <string name="task_notification_channel_description">Notifications for pending tasks.</string>
+    <string name="exact_alarm_permission_required">Exact alarm permission is required for notifications. Please enable it in the settings.</string>
 </resources>
