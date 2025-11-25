@@ -67,7 +67,16 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         initialValue = NotesUiState()
     )
 
-    fun loadNote(noteId: Int) {
+    fun prepareForEntry(noteId: Int?) {
+        val currentId = _noteDetails.value.id
+        if (noteId != null && noteId != currentId) {
+            loadNote(noteId)
+        } else if (noteId == null && currentId != 0) {
+            clearNoteDetails()
+        }
+    }
+
+    private fun loadNote(noteId: Int) {
         viewModelScope.launch {
             repository.getNoteById(noteId).firstOrNull()?.let {
                 _noteDetails.value = it.toNoteDetails()
@@ -128,18 +137,20 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
     }
 
     private fun insert() = viewModelScope.launch {
+        val note = _noteDetails.value.toNote()
         val attachments = _newAttachments.value.map { (uri, type) ->
             Attachment(noteId = 0, taskId = null, uri = uri.toString(), type = type ?: "")
         }
-        repository.insert(_noteDetails.value.toNote(), attachments)
+        repository.insert(note, attachments)
         clearNoteDetails()
     }
 
     private fun update() = viewModelScope.launch {
+        val note = _noteDetails.value.toNote()
         val newAttachments = _newAttachments.value.map { (uri, type) ->
             Attachment(noteId = _noteDetails.value.id, taskId = null, uri = uri.toString(), type = type ?: "")
         }
-        repository.update(_noteDetails.value.toNote())
+        repository.update(note)
         repository.insertAttachments(newAttachments)
         clearNoteDetails()
     }

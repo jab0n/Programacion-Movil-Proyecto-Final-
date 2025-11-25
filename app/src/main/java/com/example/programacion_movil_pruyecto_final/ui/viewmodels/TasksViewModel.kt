@@ -80,7 +80,16 @@ class TasksViewModel(application: Application, private val repository: ITasksRep
         initialValue = TasksUiState()
     )
 
-    fun loadTaskForEditing(taskId: Int) {
+    fun prepareForEntry(taskId: Int?) {
+        val currentId = _taskDetails.value.id
+        if (taskId != null && taskId != currentId) {
+            loadTaskForEditing(taskId)
+        } else if (taskId == null && currentId != 0) {
+            clearTaskDetails()
+        }
+    }
+
+    private fun loadTaskForEditing(taskId: Int) {
         viewModelScope.launch {
             repository.getTaskById(taskId).firstOrNull()?.let { 
                 _taskDetails.value = it.toTaskDetails()
@@ -158,7 +167,7 @@ class TasksViewModel(application: Application, private val repository: ITasksRep
             Attachment(noteId = null, taskId = 0, uri = uri.toString(), type = type ?: "")
         }
         repository.insert(task, attachments)
-        scheduler.schedule(task)
+        if (!task.isCompleted) scheduler.schedule(task)
         clearTaskDetails()
     }
 

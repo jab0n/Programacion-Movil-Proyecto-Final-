@@ -70,11 +70,7 @@ fun TaskEntryScreen(
     val taskDetails = uiState.taskDetails
 
     LaunchedEffect(taskId) {
-        if (taskId != null) {
-            viewModel.loadTaskForEditing(taskId)
-        } else {
-            viewModel.clearTaskDetails()
-        }
+        viewModel.prepareForEntry(taskId)
     }
 
     val context = LocalContext.current
@@ -306,16 +302,57 @@ fun TaskEntryScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Attachments:")
                     taskDetails.attachments.forEach { attachment ->
-                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(text = getFileName(context, Uri.parse(attachment.uri)), modifier = Modifier.weight(1f))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f).clickable {
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        val uri = Uri.parse(attachment.uri)
+                                        setDataAndType(uri, attachment.type)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, context.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = getFileName(context, Uri.parse(attachment.uri)))
+                            }
                             IconButton(onClick = { viewModel.removeExistingAttachment(attachment) }) {
                                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
                             }
                         }
                     }
-                    uiState.newAttachments.forEach { (uri, _) ->
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(text = getFileName(context, uri), modifier = Modifier.weight(1f))
+                    uiState.newAttachments.forEach { (uri, type) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f).clickable {
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, type)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, context.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = getFileName(context, uri))
+                            }
                             IconButton(onClick = { viewModel.removeAttachment(uri) }) {
                                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
                             }
