@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.DatePicker
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachFile
@@ -47,7 +50,9 @@ import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.media.AudioRecorder
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
+import com.example.programacion_movil_pruyecto_final.utils.getFileName
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -65,7 +70,11 @@ fun TaskEntryScreen(
     val taskDetails = uiState.taskDetails
 
     LaunchedEffect(taskId) {
-        taskId?.let { viewModel.loadTaskForEditing(it) }
+        if (taskId != null) {
+            viewModel.loadTaskForEditing(taskId)
+        } else {
+            viewModel.clearTaskDetails()
+        }
     }
 
     val context = LocalContext.current
@@ -74,9 +83,23 @@ fun TaskEntryScreen(
     var isRecording by remember { mutableStateOf(false) }
     var audioFile by remember { mutableStateOf<File?>(null) }
 
-    val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        val type = uri?.let { context.contentResolver.getType(it) }
-        viewModel.onAttachmentSelected(uri, type)
+    fun copyUriToInternalStorage(uri: Uri, type: String?): Uri {
+        val inputStream = context.contentResolver.openInputStream(uri)
+        val fileName = getFileName(context, uri)
+        val file = File(context.filesDir, fileName)
+        val outputStream = FileOutputStream(file)
+        inputStream?.copyTo(outputStream)
+        inputStream?.close()
+        outputStream.close()
+        return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+    }
+
+    val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            val type = context.contentResolver.getType(it)
+            val newUri = copyUriToInternalStorage(it, type)
+            viewModel.onAttachmentSelected(newUri, type)
+        }
     }
 
     val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -179,11 +202,13 @@ fun TaskEntryScreen(
         true
     )
 
+    BackHandler {
+        viewModel.clearTaskDetails()
+        onNavigateBack()
+    }
+
     DisposableEffect(Unit) {
-        onDispose { 
-            viewModel.clearTaskDetails()
-            audioRecorder.stop()
-        }
+        onDispose { audioRecorder.stop() }
     }
 
     Scaffold(
@@ -191,7 +216,10 @@ fun TaskEntryScreen(
             TopAppBar(
                 title = { Text(stringResource(if (taskId == null) R.string.add_task else R.string.edit_task)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        viewModel.clearTaskDetails()
+                        onNavigateBack()
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.cancel)
@@ -207,89 +235,90 @@ fun TaskEntryScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            OutlinedTextField(
-                value = taskDetails.title,
-                onValueChange = { viewModel.onTitleChange(it) },
-                label = { Text(stringResource(R.string.title)) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = taskDetails.content,
-                onValueChange = { viewModel.onContentChange(it) },
-                label = { Text(stringResource(R.string.content)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                val displayDate = remember(taskDetails.date) {
-                    val parts = taskDetails.date.split("-")
-                    if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
-                }
-                Button(onClick = { datePickerDialog.show() }) {
-                    Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
-                }
-                Button(onClick = { timePickerDialog.show() }) {
-                    Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
-                }
-            }
-             Spacer(modifier = Modifier.height(16.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = taskDetails.isCompleted, onCheckedChange = { viewModel.onCompletedChange(it) })
-                Text(text = stringResource(R.string.completed))
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = { getContent.launch("*/*") }) {
-                    Text(text = stringResource(R.string.attach_file))
-                }
-                Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "photo") }) {
-                    Text(text = stringResource(R.string.take_photo))
-                }
-                Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "video") }) {
-                    Text(text = stringResource(R.string.record_video))
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                 if (!isRecording) {
-                    Button(onClick = { launchWithPermission(Manifest.permission.RECORD_AUDIO, "audio") }) {
-                        Text(text = stringResource(R.string.start_recording))
-                    }
-                } else {
-                    Button(onClick = { 
-                        audioRecorder.stop()
-                        isRecording = false
-                        val uri = audioFile?.let { FileProvider.getUriForFile(context, "${context.packageName}.provider", it) }
-                        viewModel.onAttachmentSelected(uri, "audio/mp3")
-                    }) {
-                        Text(text = stringResource(R.string.stop_recording))
-                    }
-                }
-            }
-
-            // Display attachments
-            if (taskDetails.attachments.isNotEmpty() || uiState.newAttachments.isNotEmpty()) {
+            // Scrollable content area
+            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                OutlinedTextField(
+                    value = taskDetails.title,
+                    onValueChange = { viewModel.onTitleChange(it) },
+                    label = { Text(stringResource(R.string.title)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Attachments:")
-                taskDetails.attachments.forEach { attachment ->
-                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Text(text = attachment.uri.substringAfterLast('/'), modifier = Modifier.weight(1f))
-                        IconButton(onClick = { viewModel.removeExistingAttachment(attachment) }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+                OutlinedTextField(
+                    value = taskDetails.content,
+                    onValueChange = { viewModel.onContentChange(it) },
+                    label = { Text(stringResource(R.string.content)) },
+                    modifier = Modifier.fillMaxWidth().height(150.dp) // Give it a substantial default size
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val displayDate = remember(taskDetails.date) {
+                        val parts = taskDetails.date.split("-")
+                        if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
+                    }
+                    Button(onClick = { datePickerDialog.show() }) {
+                        Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
+                    }
+                    Button(onClick = { timePickerDialog.show() }) {
+                        Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
+                    }
+                }
+                 Spacer(modifier = Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = taskDetails.isCompleted, onCheckedChange = { viewModel.onCompletedChange(it) })
+                    Text(text = stringResource(R.string.completed))
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { getContent.launch("*/*") }) {
+                        Text(text = stringResource(R.string.attach_file))
+                    }
+                    Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "photo") }) {
+                        Text(text = stringResource(R.string.take_photo))
+                    }
+                    Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "video") }) {
+                        Text(text = stringResource(R.string.record_video))
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                     if (!isRecording) {
+                        Button(onClick = { launchWithPermission(Manifest.permission.RECORD_AUDIO, "audio") }) {
+                            Text(text = stringResource(R.string.start_recording))
+                        }
+                    } else {
+                        Button(onClick = { 
+                            audioRecorder.stop()
+                            isRecording = false
+                            val uri = audioFile?.let { FileProvider.getUriForFile(context, "${context.packageName}.provider", it) }
+                            viewModel.onAttachmentSelected(uri, "audio/mp3")
+                        }) {
+                            Text(text = stringResource(R.string.stop_recording))
                         }
                     }
                 }
-                uiState.newAttachments.forEach { (uri, _) ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Text(text = uri.path?.substringAfterLast('/') ?: "unknown file", modifier = Modifier.weight(1f))
-                        IconButton(onClick = { viewModel.removeAttachment(uri) }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+
+                // Display attachments
+                if (taskDetails.attachments.isNotEmpty() || uiState.newAttachments.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Attachments:")
+                    taskDetails.attachments.forEach { attachment ->
+                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Text(text = getFileName(context, Uri.parse(attachment.uri)), modifier = Modifier.weight(1f))
+                            IconButton(onClick = { viewModel.removeExistingAttachment(attachment) }) {
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+                            }
+                        }
+                    }
+                    uiState.newAttachments.forEach { (uri, _) ->
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Text(text = getFileName(context, uri), modifier = Modifier.weight(1f))
+                            IconButton(onClick = { viewModel.removeAttachment(uri) }) {
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+                            }
                         }
                     }
                 }
