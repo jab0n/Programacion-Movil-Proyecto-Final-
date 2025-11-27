@@ -3,11 +3,9 @@ package com.example.programacion_movil_pruyecto_final.ui.screens
 import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.DatePicker
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -39,12 +38,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
@@ -63,6 +64,7 @@ import java.util.Locale
 fun TaskEntryScreen(
     application: NotesAndTasksApplication, 
     onNavigateBack: () -> Unit,
+    onAttachmentClick: (String, String) -> Unit,
     taskId: Int? = null
 ) {
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
@@ -79,7 +81,7 @@ fun TaskEntryScreen(
     var isRecording by remember { mutableStateOf(false) }
     var audioFile by remember { mutableStateOf<File?>(null) }
 
-    fun copyUriToInternalStorage(uri: Uri, type: String?): Uri {
+    fun copyUriToInternalStorage(uri: Uri): Uri {
         val inputStream = context.contentResolver.openInputStream(uri)
         val fileName = getFileName(context, uri)
         val file = File(context.filesDir, fileName)
@@ -92,8 +94,8 @@ fun TaskEntryScreen(
 
     val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
+            val newUri = copyUriToInternalStorage(it)
             val type = context.contentResolver.getType(it)
-            val newUri = copyUriToInternalStorage(it, type)
             viewModel.onAttachmentSelected(newUri, type)
         }
     }
@@ -306,22 +308,20 @@ fun TaskEntryScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.weight(1f).clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        val uri = Uri.parse(attachment.uri)
-                                        setDataAndType(uri, attachment.type)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    try {
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, context.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show()
-                                    }
-                                },
+                             Row(
+                                modifier = Modifier.weight(1f).clickable { onAttachmentClick(attachment.uri, attachment.type) },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                                if (attachment.type.startsWith("image/") || attachment.type.startsWith("video/")) {
+                                    AsyncImage(
+                                        model = attachment.uri,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(Icons.Default.AttachFile, contentDescription = null)
+                                }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(text = getFileName(context, Uri.parse(attachment.uri)))
                             }
@@ -336,20 +336,19 @@ fun TaskEntryScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         ) {
                             Row(
-                                modifier = Modifier.weight(1f).clickable {
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(uri, type)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    try {
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, context.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show()
-                                    }
-                                },
+                                modifier = Modifier.weight(1f).clickable { onAttachmentClick(uri.toString(), type ?: "") },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                                if (type?.startsWith("image/") == true || type?.startsWith("video/") == true) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(Icons.Default.AttachFile, contentDescription = null)
+                                }
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(text = getFileName(context, uri))
                             }

@@ -1,8 +1,6 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
-import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -41,6 +39,7 @@ import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.NoteWithAttachments
+import com.example.programacion_movil_pruyecto_final.utils.getFileName
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +48,7 @@ fun NotesScreen(
     application: NotesAndTasksApplication, 
     onAddNote: () -> Unit, 
     onEditNote: (Int) -> Unit,
+    onAttachmentClick: (String, String) -> Unit,
     isExpandedScreen: Boolean
 ) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
@@ -71,7 +71,8 @@ fun NotesScreen(
                     isExpanded = noteWithAttachments.note.id in uiState.expandedNoteIds,
                     onClick = { viewModel.toggleNoteExpansion(noteWithAttachments.note.id) },
                     onDelete = { viewModel.delete(noteWithAttachments.note) },
-                    onEdit = { onEditNote(noteWithAttachments.note.id) }
+                    onEdit = { onEditNote(noteWithAttachments.note.id) },
+                    onAttachmentClick = onAttachmentClick
                 )
             }
         }
@@ -84,7 +85,8 @@ fun NoteItem(
     isExpanded: Boolean, 
     onClick: () -> Unit, 
     onDelete: () -> Unit, 
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onAttachmentClick: (String, String) -> Unit
 ) {
     val note = noteWithAttachments.note
     val context = LocalContext.current
@@ -112,20 +114,12 @@ fun NoteItem(
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().clickable { 
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    val uri = Uri.parse(attachment.uri)
-                                    setDataAndType(uri, attachment.type)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                try {
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, context.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show()
-                                }
-                            }.padding(vertical = 4.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onAttachmentClick(attachment.uri, attachment.type) }
+                                .padding(vertical = 4.dp)
                         ) {
-                            if (attachment.type.startsWith("image/")) {
+                            if (attachment.type.startsWith("image/") || attachment.type.startsWith("video/")) {
                                 AsyncImage(
                                     model = attachment.uri,
                                     contentDescription = null,
@@ -136,7 +130,7 @@ fun NoteItem(
                                 Icon(Icons.Default.AttachFile, contentDescription = null)
                             }
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = attachment.uri.substringAfterLast("/"))
+                            Text(text = getFileName(context, Uri.parse(attachment.uri)))
                         }
                     }
                 }
