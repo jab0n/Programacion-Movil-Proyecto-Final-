@@ -93,10 +93,10 @@ fun TaskEntryScreen(
         return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     }
 
-    val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            val newUri = copyUriToInternalStorage(it)
-            val type = context.contentResolver.getType(it)
+    val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
+        uris.forEach { uri ->
+            val newUri = copyUriToInternalStorage(uri)
+            val type = context.contentResolver.getType(uri)
             viewModel.onAttachmentSelected(newUri, type)
         }
     }
@@ -117,7 +117,7 @@ fun TaskEntryScreen(
 
     fun createFile(extension: String): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "${extension.uppercase()}_${timeStamp}_"
+        val fileName = "${extension.uppercase()}_$timeStamp"
         return File.createTempFile(fileName, ".$extension", context.externalCacheDir)
     }
 

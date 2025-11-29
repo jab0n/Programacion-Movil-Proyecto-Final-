@@ -93,8 +93,13 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
     }
 
     fun onAttachmentSelected(uri: Uri?, type: String?) {
-        uri?.let { 
-            _newAttachments.update { currentList -> currentList + (it to type) }
+        uri?.let { newUri ->
+            val isAlreadyInNew = _newAttachments.value.any { it.first == newUri }
+            val isAlreadyInExisting = _noteDetails.value.attachments.any { it.uri == newUri.toString() }
+
+            if (!isAlreadyInNew && !isAlreadyInExisting) {
+                _newAttachments.update { currentList -> currentList + (newUri to type) }
+            }
         }
     }
 
