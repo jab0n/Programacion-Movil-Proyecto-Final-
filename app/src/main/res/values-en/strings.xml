@@ -4,6 +4,7 @@
     <string name="tasks">Tasks</string>
     <string name="add_note">Add note</string>
     <string name="add_task">Add task</string>
+    <string name="add_reminder">Add reminder</string>
     <string name="edit_note">Edit Note</string>
     <string name="edit_task">Edit Task</string>
     <string name="title">Title</string>

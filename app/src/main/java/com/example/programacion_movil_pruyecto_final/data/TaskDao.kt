@@ -18,11 +18,16 @@ interface TaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAttachments(attachments: List<Attachment>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReminders(reminders: List<Reminder>)
+
     @Transaction
-    suspend fun insertTaskWithAttachments(task: Task, attachments: List<Attachment>) {
+    suspend fun insertTaskWithRelations(task: Task, attachments: List<Attachment>, reminders: List<Reminder>) {
         val taskId = insertTask(task)
         val attachmentsWithTaskId = attachments.map { it.copy(taskId = taskId.toInt()) }
+        val remindersWithTaskId = reminders.map { it.copy(taskId = taskId.toInt()) }
         insertAttachments(attachmentsWithTaskId)
+        insertReminders(remindersWithTaskId)
     }
 
     @Update
@@ -34,11 +39,14 @@ interface TaskDao {
     @Delete
     suspend fun deleteAttachment(attachment: Attachment)
 
-    @Transaction
-    @Query("SELECT * FROM tasks WHERE id = :id")
-    fun getTaskById(id: Int): Flow<TaskWithAttachments>
+    @Query("DELETE FROM reminders WHERE taskId = :taskId")
+    suspend fun deleteRemindersByTaskId(taskId: Int)
 
     @Transaction
-    @Query("SELECT * FROM tasks ORDER BY date ASC, time ASC")
-    fun getAllTasks(): Flow<List<TaskWithAttachments>>
+    @Query("SELECT * FROM tasks WHERE id = :id")
+    fun getTaskById(id: Int): Flow<TaskFull>
+
+    @Transaction
+    @Query("SELECT * FROM tasks ORDER BY id DESC") // Order by id as date is removed
+    fun getAllTasks(): Flow<List<TaskFull>>
 }

@@ -32,6 +32,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.programacion_movil_pruyecto_final.notifications.NotificationReceiver
 import com.example.programacion_movil_pruyecto_final.ui.screens.MediaViewerScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.NoteEntryScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.NotesScreen
@@ -49,6 +50,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val application = application as NotesAndTasksApplication
+
+        val startDestination = if (intent?.action == NotificationReceiver.ACTION_SHOW_TASK_SCREEN) {
+            Screen.Tasks.route
+        } else {
+            Screen.Notes.route
+        }
+
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
             val navController = rememberNavController()
@@ -109,7 +117,7 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = Screen.Notes.route,
+                        startDestination = startDestination,
                     ) {
                         composable(Screen.Notes.route) {
                             NotesScreen(

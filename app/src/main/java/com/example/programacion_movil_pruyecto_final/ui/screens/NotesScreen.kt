@@ -1,6 +1,8 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
+import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -116,10 +118,34 @@ fun NoteItem(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onAttachmentClick(attachment.uri, attachment.type) }
+                                .clickable {
+                                    val attachmentType = attachment.type ?: ""
+                                    if (attachmentType.startsWith("image/") ||
+                                        attachmentType.startsWith("video/") ||
+                                        attachmentType.startsWith("audio/")
+                                    ) {
+                                        onAttachmentClick(attachment.uri, attachmentType)
+                                    } else {
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            val uri = Uri.parse(attachment.uri)
+                                            setDataAndType(uri, attachmentType)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.no_app_found),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                }
                                 .padding(vertical = 4.dp)
                         ) {
-                            if (attachment.type.startsWith("image/") || attachment.type.startsWith("video/")) {
+                            val attachmentType = attachment.type ?: ""
+                            if (attachmentType.startsWith("image/") || attachmentType.startsWith("video/")) {
                                 AsyncImage(
                                     model = attachment.uri,
                                     contentDescription = null,

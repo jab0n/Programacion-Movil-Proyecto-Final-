@@ -1,5 +1,8 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -38,10 +41,9 @@ import coil.compose.AsyncImage
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
-import com.example.programacion_movil_pruyecto_final.data.TaskWithAttachments
+import com.example.programacion_movil_pruyecto_final.data.TaskFull
 import com.example.programacion_movil_pruyecto_final.utils.getFileName
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
-import android.net.Uri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,15 +68,15 @@ fun TasksScreen(
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(uiState.taskList) { taskWithAttachments ->
+            items(uiState.taskList) { taskFull ->
                 TaskItem(
-                    taskWithAttachments = taskWithAttachments,
-                    isExpanded = taskWithAttachments.task.id in uiState.expandedTaskIds,
-                    onClick = { viewModel.toggleTaskExpansion(taskWithAttachments.task.id) },
-                    onDelete = { viewModel.delete(taskWithAttachments.task) },
-                    onEdit = { onEditTask(taskWithAttachments.task.id) },
+                    taskFull = taskFull,
+                    isExpanded = taskFull.task.id in uiState.expandedTaskIds,
+                    onClick = { viewModel.toggleTaskExpansion(taskFull.task.id) },
+                    onDelete = { viewModel.delete(taskFull.task, taskFull.reminders) },
+                    onEdit = { onEditTask(taskFull.task.id) },
                     onCheckChange = { isChecked ->
-                        viewModel.update(taskWithAttachments.task.copy(isCompleted = isChecked))
+                        viewModel.update(taskFull.task.copy(isCompleted = isChecked), taskFull.reminders)
                     },
                     onAttachmentClick = onAttachmentClick
                 )
@@ -85,7 +87,7 @@ fun TasksScreen(
 
 @Composable
 fun TaskItem(
-    taskWithAttachments: TaskWithAttachments,
+    taskFull: TaskFull,
     isExpanded: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit,
@@ -93,7 +95,7 @@ fun TaskItem(
     onCheckChange: (Boolean) -> Unit,
     onAttachmentClick: (String, String) -> Unit
 ) {
-    val task = taskWithAttachments.task
+    val task = taskFull.task
     val context = LocalContext.current
 
     Card(
@@ -110,9 +112,6 @@ fun TaskItem(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = task.title)
-                    val dateParts = task.date.split("-")
-                    val displayDate = if (dateParts.size == 3) "${dateParts[2]}/${dateParts[1]}/${dateParts[0]}" else task.date
-                    Text(text = "$displayDate ${task.time}")
                 }
                 IconButton(onClick = onEdit) {
                     Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_task))
@@ -124,16 +123,51 @@ fun TaskItem(
             AnimatedVisibility(visible = isExpanded) {
                 Column {
                     Text(text = task.content, modifier = Modifier.padding(top = 8.dp))
-                    taskWithAttachments.attachments.forEach { attachment ->
+
+                    if (taskFull.reminders.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        taskFull.reminders.forEach { reminder ->
+                            Text(
+                                text = "Reminder: ${reminder.date} at ${reminder.time}",
+                                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                            )
+                        }
+                    }
+
+                    taskFull.attachments.forEach { attachment ->
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onAttachmentClick(attachment.uri, attachment.type) }
+                                .clickable {
+                                    val attachmentType = attachment.type ?: ""
+                                    if (attachmentType.startsWith("image/") ||
+                                        attachmentType.startsWith("video/") ||
+                                        attachmentType.startsWith("audio/")
+                                    ) {
+                                        onAttachmentClick(attachment.uri, attachmentType)
+                                    } else {
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            val uri = Uri.parse(attachment.uri)
+                                            setDataAndType(uri, attachmentType)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.no_app_found),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                }
                                 .padding(vertical = 4.dp)
                         ) {
-                            if (attachment.type.startsWith("image/") || attachment.type.startsWith("video/")) {
+                            val attachmentType = attachment.type ?: ""
+                            if (attachmentType.startsWith("image/") || attachmentType.startsWith("video/")) {
                                 AsyncImage(
                                     model = attachment.uri,
                                     contentDescription = null,

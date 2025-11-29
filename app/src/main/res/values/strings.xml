@@ -4,6 +4,7 @@
     <string name="tasks">Tareas</string>
     <string name="add_note">Agregar nota</string>
     <string name="add_task">Agregar tarea</string>
+    <string name="add_reminder">Añadir recordatorio</string>
     <string name="edit_note">Editar Nota</string>
     <string name="edit_task">Editar Tarea</string>
     <string name="title">Título</string>

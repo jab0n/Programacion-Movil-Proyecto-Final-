@@ -49,6 +49,7 @@ import coil.compose.AsyncImage
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
+import com.example.programacion_movil_pruyecto_final.data.Reminder
 import com.example.programacion_movil_pruyecto_final.media.AudioRecorder
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
 import com.example.programacion_movil_pruyecto_final.utils.getFileName
@@ -179,26 +180,43 @@ fun TaskEntryScreen(
         }
     }
 
+    // --- Reminder Dialogs Logic ---
     val calendar = Calendar.getInstance()
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
-            viewModel.onDateChange("%d-%02d-%02d".format(year, month + 1, dayOfMonth))
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
+    var tempDate by remember { mutableStateOf<String?>(null) }
+    var reminderToEdit by remember { mutableStateOf<Reminder?>(null) }
 
     val timePickerDialog = TimePickerDialog(
         context,
-        { _, hourOfDay: Int, minute: Int ->
-            viewModel.onTimeChange("%02d:%02d".format(hourOfDay, minute))
+        { _, hourOfDay, minute ->
+            tempDate?.let {
+                val newTime = "%02d:%02d".format(hourOfDay, minute)
+                reminderToEdit?.let {
+                    viewModel.onReminderEdited(it, tempDate!!, newTime)
+                } ?: viewModel.addReminder(it, newTime)
+            }
+            tempDate = null
+            reminderToEdit = null
         },
         calendar.get(Calendar.HOUR_OF_DAY),
         calendar.get(Calendar.MINUTE),
         true
     )
+
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            tempDate = "%d-%02d-%02d".format(year, month + 1, dayOfMonth)
+            timePickerDialog.show()
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+    
+    fun showReminderDialog(reminder: Reminder? = null) {
+        reminderToEdit = reminder
+        datePickerDialog.show()
+    }
 
     BackHandler {
         viewModel.clearTaskDetails()
@@ -246,24 +264,31 @@ fun TaskEntryScreen(
                     value = taskDetails.content,
                     onValueChange = { viewModel.onContentChange(it) },
                     label = { Text(stringResource(R.string.content)) },
-                    modifier = Modifier.fillMaxWidth().height(150.dp) // Give it a substantial default size
+                    modifier = Modifier.fillMaxWidth().height(150.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    val displayDate = remember(taskDetails.date) {
-                        val parts = taskDetails.date.split("-")
-                        if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else taskDetails.date
-                    }
-                    Button(onClick = { datePickerDialog.show() }) {
-                        Text(text = displayDate.ifEmpty { stringResource(R.string.select_date) })
-                    }
-                    Button(onClick = { timePickerDialog.show() }) {
-                        Text(text = taskDetails.time.ifEmpty { stringResource(R.string.select_time) })
+                
+                // --- Reminders List ---
+                Text("Reminders")
+                taskDetails.reminders.forEach { reminder ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showReminderDialog(reminder) }
+                            .padding(vertical = 2.dp), 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "${reminder.date} at ${reminder.time}", modifier = Modifier.weight(1f))
+                        IconButton(onClick = { viewModel.removeReminder(reminder) }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+                        }
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { showReminderDialog() }) {
+                    Text(stringResource(R.string.add_reminder))
+                }
+                 
                  Spacer(modifier = Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = taskDetails.isCompleted, onCheckedChange = { viewModel.onCompletedChange(it) })
