@@ -3,7 +3,6 @@ package com.example.programacion_movil_pruyecto_final.ui.screens
 import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.DatePicker
 import androidx.activity.compose.BackHandler
@@ -42,7 +41,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -53,6 +51,7 @@ import com.example.programacion_movil_pruyecto_final.data.Reminder
 import com.example.programacion_movil_pruyecto_final.media.AudioRecorder
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
 import com.example.programacion_movil_pruyecto_final.utils.getFileName
+import com.example.programacion_movil_pruyecto_final.utils.rememberPermissionHandler
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -128,57 +127,28 @@ fun TaskEntryScreen(
             file
         ).also { tempUri = it }
     }
-
-    var actionToLaunch by remember { mutableStateOf<String?>(null) }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            when (actionToLaunch) {
-                "photo" -> {
-                    val uri = createFileUri(createFile("jpg"))
-                    takePicture.launch(uri)
-                }
-                "video" -> {
-                    val uri = createFileUri(createFile("mp4"))
-                    captureVideo.launch(uri)
-                }
-                "audio" -> {
-                    isRecording = true
-                    audioFile = createFile("mp3")
-                    audioFile?.let { audioRecorder.start(it) }
-                }
+    
+    val permissionHandler = rememberPermissionHandler(onGranted = { action ->
+        when (action) {
+            "photo" -> {
+                val uri = createFileUri(createFile("jpg"))
+                takePicture.launch(uri)
+            }
+            "video" -> {
+                val uri = createFileUri(createFile("mp4"))
+                captureVideo.launch(uri)
+            }
+            "audio" -> {
+                isRecording = true
+                audioFile = createFile("mp3")
+                audioFile?.let { audioRecorder.start(it) }
+            }
+            "notifications" -> {
+                viewModel.save()
+                onNavigateBack()
             }
         }
-        actionToLaunch = null
-    }
-
-    fun launchWithPermission(permission: String, action: String) {
-        when (ContextCompat.checkSelfPermission(context, permission)) {
-            PackageManager.PERMISSION_GRANTED -> {
-                when (action) {
-                    "photo" -> {
-                        val uri = createFileUri(createFile("jpg"))
-                        takePicture.launch(uri)
-                    }
-                    "video" -> {
-                        val uri = createFileUri(createFile("mp4"))
-                        captureVideo.launch(uri)
-                    }
-                    "audio" -> {
-                        isRecording = true
-                        audioFile = createFile("mp3")
-                        audioFile?.let { audioRecorder.start(it) }
-                    }
-                }
-            }
-            else -> {
-                actionToLaunch = action
-                permissionLauncher.launch(permission)
-            }
-        }
-    }
+    })
 
     // --- Reminder Dialogs Logic ---
     val calendar = Calendar.getInstance()
@@ -299,17 +269,17 @@ fun TaskEntryScreen(
                     Button(onClick = { getContent.launch("*/*") }) {
                         Text(text = stringResource(R.string.attach_file))
                     }
-                    Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "photo") }) {
+                    Button(onClick = { permissionHandler(Manifest.permission.CAMERA, "photo") }) {
                         Text(text = stringResource(R.string.take_photo))
                     }
-                    Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "video") }) {
+                    Button(onClick = { permissionHandler(Manifest.permission.CAMERA, "video") }) {
                         Text(text = stringResource(R.string.record_video))
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
                      if (!isRecording) {
-                        Button(onClick = { launchWithPermission(Manifest.permission.RECORD_AUDIO, "audio") }) {
+                        Button(onClick = { permissionHandler(Manifest.permission.RECORD_AUDIO, "audio") }) {
                             Text(text = stringResource(R.string.start_recording))
                         }
                     } else {
@@ -387,8 +357,12 @@ fun TaskEntryScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
-                viewModel.save()
-                onNavigateBack()
+                if (taskDetails.reminders.isNotEmpty()) {
+                    permissionHandler(Manifest.permission.POST_NOTIFICATIONS, "notifications")
+                } else {
+                    viewModel.save()
+                    onNavigateBack()
+                }
             }) {
                 Text(stringResource(R.string.save))
             }

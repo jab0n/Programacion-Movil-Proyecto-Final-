@@ -1,7 +1,6 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
 import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -38,7 +37,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -48,6 +46,7 @@ import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.media.AudioRecorder
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
 import com.example.programacion_movil_pruyecto_final.utils.getFileName
+import com.example.programacion_movil_pruyecto_final.utils.rememberPermissionLauncher
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -123,56 +122,23 @@ fun NoteEntryScreen(
         ).also { tempUri = it }
     }
 
-    var actionToLaunch by remember { mutableStateOf<String?>(null) }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            when (actionToLaunch) {
-                "photo" -> {
-                    val uri = createFileUri(createFile("jpg"))
-                    takePicture.launch(uri)
-                }
-                "video" -> {
-                    val uri = createFileUri(createFile("mp4"))
-                    captureVideo.launch(uri)
-                }
-                "audio" -> {
-                    isRecording = true
-                    audioFile = createFile("mp3")
-                    audioFile?.let { audioRecorder.start(it) }
-                }
+    val permissionLauncher = rememberPermissionLauncher(onPermissionGranted = { action ->
+        when (action) {
+            "photo" -> {
+                val uri = createFileUri(createFile("jpg"))
+                takePicture.launch(uri)
+            }
+            "video" -> {
+                val uri = createFileUri(createFile("mp4"))
+                captureVideo.launch(uri)
+            }
+            "audio" -> {
+                isRecording = true
+                audioFile = createFile("mp3")
+                audioFile?.let { audioRecorder.start(it) }
             }
         }
-        actionToLaunch = null
-    }
-
-    fun launchWithPermission(permission: String, action: String) {
-        when (ContextCompat.checkSelfPermission(context, permission)) {
-            PackageManager.PERMISSION_GRANTED -> {
-                when (action) {
-                    "photo" -> {
-                        val uri = createFileUri(createFile("jpg"))
-                        takePicture.launch(uri)
-                    }
-                    "video" -> {
-                        val uri = createFileUri(createFile("mp4"))
-                        captureVideo.launch(uri)
-                    }
-                    "audio" -> {
-                        isRecording = true
-                        audioFile = createFile("mp3")
-                        audioFile?.let { audioRecorder.start(it) }
-                    }
-                }
-            }
-            else -> {
-                actionToLaunch = action
-                permissionLauncher.launch(permission)
-            }
-        }
-    }
+    })
 
     BackHandler {
         viewModel.clearNoteDetails()
@@ -227,17 +193,17 @@ fun NoteEntryScreen(
                     Button(onClick = { getContent.launch("*/*") }) {
                         Text(text = stringResource(R.string.attach_file))
                     }
-                    Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "photo") }) {
+                    Button(onClick = { permissionLauncher(Manifest.permission.CAMERA, "photo") }) {
                         Text(text = stringResource(R.string.take_photo))
                     }
-                    Button(onClick = { launchWithPermission(Manifest.permission.CAMERA, "video") }) {
+                    Button(onClick = { permissionLauncher(Manifest.permission.CAMERA, "video") }) {
                         Text(text = stringResource(R.string.record_video))
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
                      if (!isRecording) {
-                        Button(onClick = { launchWithPermission(Manifest.permission.RECORD_AUDIO, "audio") }) {
+                        Button(onClick = { permissionLauncher(Manifest.permission.RECORD_AUDIO, "audio") }) {
                             Text(text = stringResource(R.string.start_recording))
                         }
                     } else {
