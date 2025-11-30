@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,20 +18,27 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -41,24 +49,27 @@ import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.NoteWithAttachments
-import com.example.programacion_movil_pruyecto_final.utils.getFileName
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
+import com.example.programacion_movil_pruyecto_final.utils.getFileName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
-    application: NotesAndTasksApplication, 
-    onAddNote: () -> Unit, 
+    application: NotesAndTasksApplication,
+    onAddNote: () -> Unit,
     onEditNote: (Int) -> Unit,
     onAttachmentClick: (String, String) -> Unit,
     isExpandedScreen: Boolean
 ) {
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
     val uiState by viewModel.uiState.collectAsState()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.notes)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.notes)) }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddNote) {
@@ -66,7 +77,10 @@ fun NotesScreen(
             }
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding)) {
+        LazyColumn(
+            modifier = Modifier.padding(padding),
+            contentPadding = PaddingValues(8.dp) // Add padding around the list
+        ) {
             items(uiState.noteList) { noteWithAttachments ->
                 NoteItem(
                     noteWithAttachments = noteWithAttachments,
@@ -83,10 +97,10 @@ fun NotesScreen(
 
 @Composable
 fun NoteItem(
-    noteWithAttachments: NoteWithAttachments, 
-    isExpanded: Boolean, 
-    onClick: () -> Unit, 
-    onDelete: () -> Unit, 
+    noteWithAttachments: NoteWithAttachments,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
     onEdit: () -> Unit,
     onAttachmentClick: (String, String) -> Unit
 ) {
@@ -95,23 +109,28 @@ fun NoteItem(
 
     Card(
         modifier = Modifier
-            .padding(8.dp)
+            .padding(vertical = 4.dp) // Adjusted padding
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // Add elevation
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = note.title, modifier = Modifier.weight(1f))
+                Text(text = note.title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge) // Improve typography
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_note))
+                    Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.edit_note))
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
+                    Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.delete))
                 }
             }
             AnimatedVisibility(visible = isExpanded) {
                 Column {
-                    Text(text = note.content, modifier = Modifier.padding(top = 8.dp))
+                    Text(text = note.content, modifier = Modifier.padding(top = 8.dp), style = MaterialTheme.typography.bodyMedium)
                     noteWithAttachments.attachments.forEach { attachment ->
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
@@ -134,11 +153,13 @@ fun NoteItem(
                                         try {
                                             context.startActivity(intent)
                                         } catch (e: Exception) {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.no_app_found),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    context.getString(R.string.no_app_found),
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
                                         }
                                     }
                                 }
@@ -149,14 +170,14 @@ fun NoteItem(
                                 AsyncImage(
                                     model = attachment.uri,
                                     contentDescription = null,
-                                    modifier = Modifier.size(40.dp),
+                                    modifier = Modifier.size(48.dp), // Increased size
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                                Icon(Icons.Outlined.AttachFile, contentDescription = null, modifier = Modifier.size(40.dp)) // Use outlined icon and consistent size
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = getFileName(context, Uri.parse(attachment.uri)))
+                            Spacer(modifier = Modifier.width(16.dp)) // Increased spacing
+                            Text(text = getFileName(context, Uri.parse(attachment.uri)), style = MaterialTheme.typography.bodySmall) // Adjusted typography
                         }
                     }
                 }

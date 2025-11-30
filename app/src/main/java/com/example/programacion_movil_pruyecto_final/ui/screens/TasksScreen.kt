@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,24 +18,34 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -42,8 +53,8 @@ import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.TaskFull
-import com.example.programacion_movil_pruyecto_final.utils.getFileName
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
+import com.example.programacion_movil_pruyecto_final.utils.getFileName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +70,9 @@ fun TasksScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.tasks)) })
+            TopAppBar(
+                title = { Text(stringResource(R.string.tasks)) }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddTask) {
@@ -67,7 +80,10 @@ fun TasksScreen(
             }
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding)) {
+        LazyColumn(
+            modifier = Modifier.padding(padding),
+            contentPadding = PaddingValues(8.dp)
+        ) {
             items(uiState.taskList) { taskFull ->
                 TaskItem(
                     taskFull = taskFull,
@@ -97,12 +113,22 @@ fun TaskItem(
 ) {
     val task = taskFull.task
     val context = LocalContext.current
+    val textStyle = if (task.isCompleted) {
+        MaterialTheme.typography.titleLarge.copy(textDecoration = TextDecoration.LineThrough, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+    } else {
+        MaterialTheme.typography.titleLarge
+    }
 
     Card(
         modifier = Modifier
-            .padding(8.dp)
+            .padding(vertical = 4.dp)
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -110,27 +136,35 @@ fun TaskItem(
                     checked = task.isCompleted,
                     onCheckedChange = onCheckChange
                 )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = task.title)
-                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = task.title,
+                    modifier = Modifier.weight(1f),
+                    style = textStyle,
+                )
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_task))
+                    Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.edit_task))
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
+                    Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.delete))
                 }
             }
             AnimatedVisibility(visible = isExpanded) {
-                Column {
-                    Text(text = task.content, modifier = Modifier.padding(top = 8.dp))
+                Column(modifier = Modifier.padding(start = 8.dp)) {
+                    Text(text = task.content, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
 
                     if (taskFull.reminders.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         taskFull.reminders.forEach { reminder ->
-                            Text(
-                                text = "Reminder: ${reminder.date} at ${reminder.time}",
-                                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                                Icon(Icons.Outlined.Notifications, contentDescription = "Reminder", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${reminder.date} at ${reminder.time}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontStyle = FontStyle.Italic
+                                )
+                            }
                         }
                     }
 
@@ -156,11 +190,13 @@ fun TaskItem(
                                         try {
                                             context.startActivity(intent)
                                         } catch (e: Exception) {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.no_app_found),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    context.getString(R.string.no_app_found),
+                                                    Toast.LENGTH_SHORT
+                                                )
+                                                .show()
                                         }
                                     }
                                 }
@@ -171,14 +207,14 @@ fun TaskItem(
                                 AsyncImage(
                                     model = attachment.uri,
                                     contentDescription = null,
-                                    modifier = Modifier.size(40.dp),
+                                    modifier = Modifier.size(48.dp),
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Icon(Icons.Default.AttachFile, contentDescription = null)
+                                Icon(Icons.Outlined.AttachFile, contentDescription = null, modifier = Modifier.size(40.dp))
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = getFileName(context, Uri.parse(attachment.uri)))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(text = getFileName(context, Uri.parse(attachment.uri)), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }

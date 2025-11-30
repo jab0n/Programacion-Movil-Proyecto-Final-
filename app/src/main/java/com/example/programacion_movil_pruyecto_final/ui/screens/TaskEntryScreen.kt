@@ -4,13 +4,14 @@ import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.net.Uri
-import android.widget.DatePicker
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,34 +24,45 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.example.programacion_movil_pruyecto_final.NotesAndTasksApplication
 import com.example.programacion_movil_pruyecto_final.R
 import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.data.Reminder
 import com.example.programacion_movil_pruyecto_final.media.AudioRecorder
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
-import com.example.programacion_movil_pruyecto_final.utils.getFileName
 import com.example.programacion_movil_pruyecto_final.utils.rememberPermissionHandler
 import java.io.File
 import java.io.FileOutputStream
@@ -59,10 +71,10 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TaskEntryScreen(
-    application: NotesAndTasksApplication, 
+    application: NotesAndTasksApplication,
     onNavigateBack: () -> Unit,
     onAttachmentClick: (String, String) -> Unit,
     taskId: Int? = null
@@ -83,7 +95,7 @@ fun TaskEntryScreen(
 
     fun copyUriToInternalStorage(uri: Uri): Uri {
         val inputStream = context.contentResolver.openInputStream(uri)
-        val fileName = getFileName(context, uri)
+        val fileName = com.example.programacion_movil_pruyecto_final.utils.getFileName(context, uri)
         val file = File(context.filesDir, fileName)
         val outputStream = FileOutputStream(file)
         inputStream?.copyTo(outputStream)
@@ -102,15 +114,19 @@ fun TaskEntryScreen(
 
     val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            val type = tempUri?.let { context.contentResolver.getType(it) }
-            viewModel.onAttachmentSelected(tempUri, type)
+            tempUri?.let {
+                val type = context.contentResolver.getType(it)
+                viewModel.onAttachmentSelected(it, type)
+            }
         }
     }
 
     val captureVideo = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
         if (success) {
-            val type = tempUri?.let { context.contentResolver.getType(it) }
-            viewModel.onAttachmentSelected(tempUri, type)
+            tempUri?.let {
+                val type = context.contentResolver.getType(it)
+                viewModel.onAttachmentSelected(it, type)
+            }
         }
     }
 
@@ -127,7 +143,7 @@ fun TaskEntryScreen(
             file
         ).also { tempUri = it }
     }
-    
+
     val permissionHandler = rememberPermissionHandler(onGranted = { action ->
         when (action) {
             "photo" -> {
@@ -182,7 +198,7 @@ fun TaskEntryScreen(
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
-    
+
     fun showReminderDialog(reminder: Reminder? = null) {
         reminderToEdit = reminder
         datePickerDialog.show()
@@ -219,151 +235,150 @@ fun TaskEntryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
             // Scrollable content area
-            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 OutlinedTextField(
                     value = taskDetails.title,
                     onValueChange = { viewModel.onTitleChange(it) },
                     label = { Text(stringResource(R.string.title)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.titleLarge
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = taskDetails.content,
                     onValueChange = { viewModel.onContentChange(it) },
                     label = { Text(stringResource(R.string.content)) },
-                    modifier = Modifier.fillMaxWidth().height(150.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                // --- Reminders List ---
-                Text("Reminders")
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = taskDetails.isCompleted, onCheckedChange = { viewModel.onCompletedChange(it) })
+                    Text(text = stringResource(R.string.completed))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- Reminders Section ---
+                Text("Reminders", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+
                 taskDetails.reminders.forEach { reminder ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showReminderDialog(reminder) }
-                            .padding(vertical = 2.dp), 
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "${reminder.date} at ${reminder.time}", modifier = Modifier.weight(1f))
+                        Icon(Icons.Outlined.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "${reminder.date} at ${reminder.time}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         IconButton(onClick = { viewModel.removeReminder(reminder) }) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
+                            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.remove_attachment))
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { showReminderDialog() }) {
+                OutlinedButton(onClick = { showReminderDialog() }) {
+                    Icon(Icons.Outlined.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.add_reminder))
                 }
-                 
-                 Spacer(modifier = Modifier.height(16.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = taskDetails.isCompleted, onCheckedChange = { viewModel.onCompletedChange(it) })
-                    Text(text = stringResource(R.string.completed))
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = { getContent.launch("*/*") }) {
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Action buttons
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(onClick = { getContent.launch("*/*") }) {
+                        Icon(Icons.Outlined.AttachFile, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(text = stringResource(R.string.attach_file))
                     }
-                    Button(onClick = { permissionHandler(Manifest.permission.CAMERA, "photo") }) {
+                    OutlinedButton(onClick = { permissionHandler(Manifest.permission.CAMERA, "photo") }) {
+                        Icon(Icons.Outlined.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(text = stringResource(R.string.take_photo))
                     }
-                    Button(onClick = { permissionHandler(Manifest.permission.CAMERA, "video") }) {
+                    OutlinedButton(onClick = { permissionHandler(Manifest.permission.CAMERA, "video") }) {
+                        Icon(Icons.Outlined.Videocam, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(text = stringResource(R.string.record_video))
                     }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-                     if (!isRecording) {
-                        Button(onClick = { permissionHandler(Manifest.permission.RECORD_AUDIO, "audio") }) {
+                    if (!isRecording) {
+                        OutlinedButton(onClick = { permissionHandler(Manifest.permission.RECORD_AUDIO, "audio") }) {
+                            Icon(Icons.Outlined.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(text = stringResource(R.string.start_recording))
                         }
                     } else {
-                        Button(onClick = { 
+                        FilledTonalButton(onClick = {
                             audioRecorder.stop()
                             isRecording = false
                             val uri = audioFile?.let { FileProvider.getUriForFile(context, "${context.packageName}.provider", it) }
                             viewModel.onAttachmentSelected(uri, "audio/mp3")
                         }) {
+                            Icon(Icons.Outlined.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(text = stringResource(R.string.stop_recording))
                         }
                     }
                 }
 
                 // Display attachments
-                if (taskDetails.attachments.isNotEmpty() || uiState.newAttachments.isNotEmpty()) {
+                val allAttachments = taskDetails.attachments.map { it.uri to it.type } + uiState.newAttachments.map { it.first.toString() to it.second }
+                if (allAttachments.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Attachments:", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Attachments:")
-                    taskDetails.attachments.forEach { attachment ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
-                             Row(
-                                modifier = Modifier.weight(1f).clickable { onAttachmentClick(attachment.uri, attachment.type) },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (attachment.type.startsWith("image/") || attachment.type.startsWith("video/")) {
-                                    AsyncImage(
-                                        model = attachment.uri,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Icon(Icons.Default.AttachFile, contentDescription = null)
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = getFileName(context, Uri.parse(attachment.uri)))
-                            }
-                            IconButton(onClick = { viewModel.removeExistingAttachment(attachment) }) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
-                            }
-                        }
-                    }
-                    uiState.newAttachments.forEach { (uri, type) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.weight(1f).clickable { onAttachmentClick(uri.toString(), type ?: "") },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (type?.startsWith("image/") == true || type?.startsWith("video/") == true) {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Icon(Icons.Default.AttachFile, contentDescription = null)
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = getFileName(context, uri))
-                            }
-                            IconButton(onClick = { viewModel.removeAttachment(uri) }) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_attachment))
-                            }
-                        }
-                    }
+                }
+
+                taskDetails.attachments.forEach { attachment ->
+                    AttachmentItem(
+                        uri = Uri.parse(attachment.uri),
+                        type = attachment.type,
+                        onAttachmentClick = { onAttachmentClick(attachment.uri, attachment.type) },
+                        onRemoveClick = { viewModel.removeExistingAttachment(attachment) }
+                    )
+                }
+                uiState.newAttachments.forEach { (uri, type) ->
+                    AttachmentItem(
+                        uri = uri,
+                        type = type,
+                        onAttachmentClick = { onAttachmentClick(uri.toString(), type ?: "") },
+                        onRemoveClick = { viewModel.removeAttachment(uri) }
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = {
-                if (taskDetails.reminders.isNotEmpty()) {
-                    permissionHandler(Manifest.permission.POST_NOTIFICATIONS, "notifications")
-                } else {
-                    viewModel.save()
-                    onNavigateBack()
-                }
-            }) {
+            Button(
+                onClick = {
+                    if (taskDetails.reminders.isNotEmpty()) {
+                        permissionHandler(Manifest.permission.POST_NOTIFICATIONS, "notifications")
+                    } else {
+                        viewModel.save()
+                        onNavigateBack()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            ) {
                 Text(stringResource(R.string.save))
             }
         }
