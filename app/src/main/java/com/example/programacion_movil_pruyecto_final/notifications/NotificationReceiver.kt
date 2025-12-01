@@ -21,7 +21,8 @@ class NotificationReceiver : BroadcastReceiver() {
 
         // Crea un Intent para abrir la MainActivity cuando se toque la notificación.
         val mainActivityIntent = Intent(context, MainActivity::class.java).apply {
-            action = ACTION_SHOW_TASK_SCREEN // Acción personalizada para ir a la pantalla de tareas.
+            action = "$ACTION_SHOW_TASK_DETAIL.$taskId" // Acción única para mostrar los detalles de la tarea.
+            putExtra(TaskNotificationWorker.KEY_TASK_ID, taskId)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
 
@@ -49,7 +50,7 @@ class NotificationReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        // Constante para la acción del Intent que abre la pantalla de tareas.
-        const val ACTION_SHOW_TASK_SCREEN = "ACTION_SHOW_TASK_SCREEN"
+        // Constante para la acción del Intent que abre la pantalla de detalles de la tarea.
+        const val ACTION_SHOW_TASK_DETAIL = "ACTION_SHOW_TASK_DETAIL"
     }
 }

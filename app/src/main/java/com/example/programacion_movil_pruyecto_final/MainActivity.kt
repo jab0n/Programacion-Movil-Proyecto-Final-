@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,6 +37,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.programacion_movil_pruyecto_final.notifications.NotificationReceiver
+import com.example.programacion_movil_pruyecto_final.notifications.TaskNotificationWorker
 import com.example.programacion_movil_pruyecto_final.ui.screens.MediaViewerScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.NoteEntryScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.NotesScreen
@@ -57,13 +59,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val application = application as NotesAndTasksApplication
 
-        // Determina la pantalla de inicio en función de si la actividad se inició desde una notificación.
-        val startDestination = if (intent?.action == NotificationReceiver.ACTION_SHOW_TASK_SCREEN) {
-            Screen.Tasks.route
-        } else {
-            Screen.Notes.route
-        }
-
         setContent {
             // Aplica el tema de la aplicación.
             ProgramacionMovilPruyectoFinalTheme {
@@ -74,6 +69,21 @@ class MainActivity : ComponentActivity() {
                 // Determina si se debe mostrar la barra de navegación inferior o lateral en función del tamaño de la pantalla.
                 val showBottomBar = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
                 val isExpandedScreen = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+                
+                val startDestination = if (intent?.action?.startsWith(NotificationReceiver.ACTION_SHOW_TASK_DETAIL) == true) {
+                    Screen.Tasks.route
+                } else {
+                    Screen.Notes.route
+                }
+
+                LaunchedEffect(intent) {
+                    if (intent?.action?.startsWith(NotificationReceiver.ACTION_SHOW_TASK_DETAIL) == true) {
+                        val taskId = intent.getIntExtra(TaskNotificationWorker.KEY_TASK_ID, -1)
+                        if (taskId != -1) {
+                            navController.navigate("task_entry/$taskId")
+                        }
+                    }
+                }
 
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
