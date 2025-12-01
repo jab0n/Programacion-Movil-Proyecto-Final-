@@ -1,7 +1,9 @@
 package com.example.programacion_movil_pruyecto_final.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -285,7 +287,21 @@ fun NoteEntryScreen(
                     AttachmentItem(
                         uri = Uri.parse(attachment.uri),
                         type = attachment.type,
-                        onAttachmentClick = { onAttachmentClick(attachment.uri, attachment.type ?: "") },
+                        onAttachmentClick = { 
+                            if (attachment.type?.startsWith("image/") == true || attachment.type?.startsWith("video/") == true || attachment.type?.startsWith("audio/") == true) {
+                                onAttachmentClick(attachment.uri, attachment.type ?: "") 
+                            } else {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(Uri.parse(attachment.uri), attachment.type)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "No application can handle this file", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
                         onRemoveClick = { viewModel.removeExistingAttachment(attachment) }
                     )
                 }
@@ -293,7 +309,21 @@ fun NoteEntryScreen(
                     AttachmentItem(
                         uri = uri,
                         type = type,
-                        onAttachmentClick = { onAttachmentClick(uri.toString(), type ?: "") },
+                        onAttachmentClick = { 
+                            if (type?.startsWith("image/") == true || type?.startsWith("video/") == true || type?.startsWith("audio/") == true) {
+                                onAttachmentClick(uri.toString(), type ?: "") 
+                            } else {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, type)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "No application can handle this file", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                         },
                         onRemoveClick = { viewModel.removeAttachment(uri) }
                     )
                 }
