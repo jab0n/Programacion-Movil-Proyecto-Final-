@@ -33,14 +33,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -56,44 +53,52 @@ import com.example.programacion_movil_pruyecto_final.data.TaskFull
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.TasksViewModel
 import com.example.programacion_movil_pruyecto_final.utils.getFileName
 
+// Composable que representa la pantalla principal de tareas.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksScreen(
     application: NotesAndTasksApplication,
-    onAddTask: () -> Unit,
-    onEditTask: (Int) -> Unit,
-    onAttachmentClick: (String, String) -> Unit,
-    isExpandedScreen: Boolean
+    onAddTask: () -> Unit, // Lógica para añadir una nueva tarea.
+    onEditTask: (Int) -> Unit, // Lógica para editar una tarea existente.
+    onAttachmentClick: (String, String) -> Unit, // Lógica para manejar el clic en un adjunto.
+    isExpandedScreen: Boolean // Indica si la pantalla es expandida (para tablets o dispositivos grandes).
 ) {
+    // Obtiene una instancia del ViewModel para esta pantalla.
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
+    // Obtiene el estado de la UI desde el ViewModel.
     val uiState by viewModel.uiState.collectAsState()
 
+    // Estructura de la pantalla utilizando Scaffold.
     Scaffold(
         topBar = {
+            // Barra de la aplicación en la parte superior.
             TopAppBar(
                 title = { Text(stringResource(R.string.tasks)) }
             )
         },
         floatingActionButton = {
+            // Botón de acción flotante para añadir una nueva tarea.
             FloatingActionButton(onClick = onAddTask) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_task))
             }
         }
     ) { padding ->
+        // Lista de tareas que ocupa el resto de la pantalla.
         LazyColumn(
             modifier = Modifier.padding(padding),
-            contentPadding = PaddingValues(8.dp)
+            contentPadding = PaddingValues(8.dp) // Añade un padding alrededor de la lista.
         ) {
+            // Itera sobre la lista de tareas y muestra cada una como un TaskItem.
             items(uiState.taskList) { taskFull ->
                 TaskItem(
                     taskFull = taskFull,
-                    isExpanded = taskFull.task.id in uiState.expandedTaskIds,
-                    onClick = { viewModel.toggleTaskExpansion(taskFull.task.id) },
-                    onDelete = { viewModel.delete(taskFull.task, taskFull.reminders) },
-                    onEdit = { onEditTask(taskFull.task.id) },
+                    isExpanded = taskFull.task.id in uiState.expandedTaskIds, // Si la tarea está expandida.
+                    onClick = { viewModel.toggleTaskExpansion(taskFull.task.id) }, // Lógica para expandir/contraer la tarea.
+                    onDelete = { viewModel.delete(taskFull.task, taskFull.reminders) }, // Lógica para eliminar la tarea.
+                    onEdit = { onEditTask(taskFull.task.id) }, // Lógica para editar la tarea.
                     onCheckChange = { isChecked ->
                         viewModel.update(taskFull.task.copy(isCompleted = isChecked), taskFull.reminders)
-                    },
+                    }, // Lógica para marcar la tarea como completada.
                     onAttachmentClick = onAttachmentClick
                 )
             }
@@ -101,24 +106,27 @@ fun TasksScreen(
     }
 }
 
+// Composable que representa un único elemento de tarea en la lista.
 @Composable
 fun TaskItem(
     taskFull: TaskFull,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-    onDelete: () -> Unit,
-    onEdit: () -> Unit,
-    onCheckChange: (Boolean) -> Unit,
-    onAttachmentClick: (String, String) -> Unit
+    isExpanded: Boolean, // Si la tarea está expandida.
+    onClick: () -> Unit, // Lógica para manejar el clic en el item.
+    onDelete: () -> Unit, // Lógica para eliminar el item.
+    onEdit: () -> Unit, // Lógica para editar el item.
+    onCheckChange: (Boolean) -> Unit, // Lógica para marcar la tarea como completada.
+    onAttachmentClick: (String, String) -> Unit // Lógica para manejar el clic en un adjunto.
 ) {
     val task = taskFull.task
     val context = LocalContext.current
+    // Estilo del texto que cambia si la tarea está completada.
     val textStyle = if (task.isCompleted) {
         MaterialTheme.typography.titleLarge.copy(textDecoration = TextDecoration.LineThrough, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
     } else {
         MaterialTheme.typography.titleLarge
     }
 
+    // Tarjeta que contiene la información de la tarea.
     Card(
         modifier = Modifier
             .padding(vertical = 4.dp)
@@ -128,7 +136,7 @@ fun TaskItem(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // Añade elevación para dar profundidad.
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -142,6 +150,7 @@ fun TaskItem(
                     modifier = Modifier.weight(1f),
                     style = textStyle,
                 )
+                // Botones de acción para editar y eliminar la tarea.
                 IconButton(onClick = onEdit) {
                     Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.edit_task))
                 }
@@ -149,10 +158,12 @@ fun TaskItem(
                     Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.delete))
                 }
             }
+            // Contenido expandible que se muestra solo si la tarea está expandida.
             AnimatedVisibility(visible = isExpanded) {
                 Column(modifier = Modifier.padding(start = 8.dp)) {
                     Text(text = task.content, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
 
+                    // Muestra los recordatorios si existen.
                     if (taskFull.reminders.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         taskFull.reminders.forEach { reminder ->
@@ -168,6 +179,7 @@ fun TaskItem(
                         }
                     }
 
+                    // Itera sobre los adjuntos y los muestra.
                     taskFull.attachments.forEach { attachment ->
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
@@ -190,13 +202,7 @@ fun TaskItem(
                                         try {
                                             context.startActivity(intent)
                                         } catch (e: Exception) {
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    context.getString(R.string.no_app_found),
-                                                    Toast.LENGTH_SHORT
-                                                )
-                                                .show()
+                                            Toast.makeText(context, context.getString(R.string.no_app_found), Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 }

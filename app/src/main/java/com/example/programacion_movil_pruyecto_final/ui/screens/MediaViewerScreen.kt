@@ -22,12 +22,14 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 
+// Composable que representa la pantalla para visualizar archivos multimedia (imágenes, videos, audio).
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaViewerScreen(uri: String, type: String?, onNavigateBack: () -> Unit) {
     val context = LocalContext.current
     val mediaUri = Uri.parse(uri)
 
+    // Estructura de la pantalla.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -41,13 +43,16 @@ fun MediaViewerScreen(uri: String, type: String?, onNavigateBack: () -> Unit) {
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            // Si el tipo de medio es una imagen, muestra la imagen.
             if (type?.startsWith("image/") == true) {
                 AsyncImage(
                     model = mediaUri,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize()
                 )
+            // Si el tipo de medio es un video o audio, muestra el reproductor de medios.
             } else if (type?.startsWith("video/") == true || type?.startsWith("audio/") == true) {
+                // Recuerda una instancia de ExoPlayer.
                 val exoPlayer = remember {
                     ExoPlayer.Builder(context).build().apply {
                         setMediaItem(MediaItem.fromUri(mediaUri))
@@ -56,6 +61,7 @@ fun MediaViewerScreen(uri: String, type: String?, onNavigateBack: () -> Unit) {
                     }
                 }
 
+                // Utiliza AndroidView para incrustar la vista del reproductor de ExoPlayer.
                 AndroidView(
                     factory = { ctx ->
                         PlayerView(ctx).apply {
@@ -65,6 +71,7 @@ fun MediaViewerScreen(uri: String, type: String?, onNavigateBack: () -> Unit) {
                     modifier = Modifier.fillMaxSize()
                 )
 
+                // Efecto que se ejecuta al salir de la pantalla para liberar los recursos de ExoPlayer.
                 DisposableEffect(Unit) {
                     onDispose { exoPlayer.release() }
                 }

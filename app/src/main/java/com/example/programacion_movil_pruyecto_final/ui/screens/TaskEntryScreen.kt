@@ -71,18 +71,22 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+// Composable que representa la pantalla para crear o editar una tarea.
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TaskEntryScreen(
     application: NotesAndTasksApplication,
-    onNavigateBack: () -> Unit,
-    onAttachmentClick: (String, String) -> Unit,
-    taskId: Int? = null
+    onNavigateBack: () -> Unit, // Lógica para navegar hacia atrás.
+    onAttachmentClick: (String, String) -> Unit, // Lógica para manejar el clic en un adjunto.
+    taskId: Int? = null // ID de la tarea a editar (nulo si se crea una nueva).
 ) {
+    // Obtiene una instancia del ViewModel para esta pantalla.
     val viewModel: TasksViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
+    // Obtiene el estado de la UI desde el ViewModel.
     val uiState by viewModel.uiState.collectAsState()
     val taskDetails = uiState.taskDetails
 
+    // Efecto que se ejecuta cuando el ID de la tarea cambia, para preparar los detalles de la tarea.
     LaunchedEffect(taskId) {
         viewModel.prepareForEntry(taskId)
     }
@@ -93,6 +97,7 @@ fun TaskEntryScreen(
     var isRecording by remember { mutableStateOf(false) }
     var audioFile by remember { mutableStateOf<File?>(null) }
 
+    // Función para copiar un archivo desde una URI a almacenamiento interno.
     fun copyUriToInternalStorage(uri: Uri): Uri {
         val inputStream = context.contentResolver.openInputStream(uri)
         val fileName = com.example.programacion_movil_pruyecto_final.utils.getFileName(context, uri)
@@ -104,6 +109,7 @@ fun TaskEntryScreen(
         return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     }
 
+    // Lanza la actividad para obtener contenido (archivos) y los añade como adjuntos.
     val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
         uris.forEach { uri ->
             val newUri = copyUriToInternalStorage(uri)
@@ -112,6 +118,7 @@ fun TaskEntryScreen(
         }
     }
 
+    // Lanza la cámara para tomar una foto y la añade como adjunto.
     val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             tempUri?.let {
@@ -121,6 +128,7 @@ fun TaskEntryScreen(
         }
     }
 
+    // Lanza la cámara para grabar un video y lo añade como adjunto.
     val captureVideo = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
         if (success) {
             tempUri?.let {
@@ -130,12 +138,14 @@ fun TaskEntryScreen(
         }
     }
 
+    // Función para crear un archivo temporal con una extensión dada.
     fun createFile(extension: String): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val fileName = "${extension.uppercase()}_$timeStamp"
         return File.createTempFile(fileName, ".$extension", context.externalCacheDir)
     }
 
+    // Función para crear una URI para un archivo.
     fun createFileUri(file: File): Uri {
         return FileProvider.getUriForFile(
             context,
@@ -144,6 +154,7 @@ fun TaskEntryScreen(
         ).also { tempUri = it }
     }
 
+    // Lanza el diálogo de permisos y ejecuta una acción si el permiso es concedido.
     val permissionHandler = rememberPermissionHandler(onGranted = { action ->
         when (action) {
             "photo" -> {
@@ -166,11 +177,12 @@ fun TaskEntryScreen(
         }
     })
 
-    // --- Reminder Dialogs Logic ---
+    // --- Lógica de los diálogos de recordatorio ---
     val calendar = Calendar.getInstance()
     var tempDate by remember { mutableStateOf<String?>(null) }
     var reminderToEdit by remember { mutableStateOf<Reminder?>(null) }
 
+    // Diálogo para seleccionar la hora del recordatorio.
     val timePickerDialog = TimePickerDialog(
         context,
         { _, hourOfDay, minute ->
@@ -188,6 +200,7 @@ fun TaskEntryScreen(
         true
     )
 
+    // Diálogo para seleccionar la fecha del recordatorio.
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
@@ -198,21 +211,25 @@ fun TaskEntryScreen(
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
-
+    
+    // Función para mostrar los diálogos de fecha y hora.
     fun showReminderDialog(reminder: Reminder? = null) {
         reminderToEdit = reminder
         datePickerDialog.show()
     }
 
+    // Maneja el botón de retroceso, limpiando los detalles de la tarea antes de navegar hacia atrás.
     BackHandler {
         viewModel.clearTaskDetails()
         onNavigateBack()
     }
 
+    // Efecto que se ejecuta al salir de la pantalla para detener la grabación de audio.
     DisposableEffect(Unit) {
         onDispose { audioRecorder.stop() }
     }
 
+    // Estructura de la pantalla.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -237,12 +254,13 @@ fun TaskEntryScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            // Scrollable content area
+            // Área de contenido con scroll.
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
+                // Campos de texto para el título y el contenido de la tarea.
                 OutlinedTextField(
                     value = taskDetails.title,
                     onValueChange = { viewModel.onTitleChange(it) },
@@ -262,6 +280,7 @@ fun TaskEntryScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Checkbox para marcar la tarea como completada.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = taskDetails.isCompleted, onCheckedChange = { viewModel.onCompletedChange(it) })
                     Text(text = stringResource(R.string.completed))
@@ -269,10 +288,11 @@ fun TaskEntryScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- Reminders Section ---
+                // --- Sección de Recordatorios ---
                 Text("Reminders", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Muestra la lista de recordatorios.
                 taskDetails.reminders.forEach { reminder ->
                     Row(
                         modifier = Modifier
@@ -290,6 +310,7 @@ fun TaskEntryScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+                // Botón para añadir un nuevo recordatorio.
                 OutlinedButton(onClick = { showReminderDialog() }) {
                     Icon(Icons.Outlined.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -298,7 +319,7 @@ fun TaskEntryScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Action buttons
+                // Botones de acción para adjuntar archivos, tomar fotos, etc.
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -339,7 +360,7 @@ fun TaskEntryScreen(
                     }
                 }
 
-                // Display attachments
+                // Muestra la lista de adjuntos.
                 val allAttachments = taskDetails.attachments.map { it.uri to it.type } + uiState.newAttachments.map { it.first.toString() to it.second }
                 if (allAttachments.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -366,8 +387,10 @@ fun TaskEntryScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            // Botón para guardar la tarea.
             Button(
                 onClick = {
+                    // Si hay recordatorios, solicita permiso para notificaciones antes de guardar.
                     if (taskDetails.reminders.isNotEmpty()) {
                         permissionHandler(Manifest.permission.POST_NOTIFICATIONS, "notifications")
                     } else {

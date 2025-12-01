@@ -43,11 +43,13 @@ import com.example.programacion_movil_pruyecto_final.ui.screens.TaskEntryScreen
 import com.example.programacion_movil_pruyecto_final.ui.screens.TasksScreen
 import com.example.programacion_movil_pruyecto_final.ui.theme.ProgramacionMovilPruyectoFinalTheme
 
+// Define las pantallas de la aplicación para la navegación.
 sealed class Screen(val route: String, val icon: ImageVector, val label: Int) {
     object Notes : Screen("notes", Icons.AutoMirrored.Filled.Note, R.string.notes)
     object Tasks : Screen("tasks", Icons.AutoMirrored.Filled.List, R.string.tasks)
 }
 
+// Actividad principal de la aplicación.
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +57,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val application = application as NotesAndTasksApplication
 
+        // Determina la pantalla de inicio en función de si la actividad se inició desde una notificación.
         val startDestination = if (intent?.action == NotificationReceiver.ACTION_SHOW_TASK_SCREEN) {
             Screen.Tasks.route
         } else {
@@ -62,17 +65,20 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            // Aplica el tema de la aplicación.
             ProgramacionMovilPruyectoFinalTheme {
                 val windowSizeClass = calculateWindowSizeClass(this)
                 val navController = rememberNavController()
                 val items = listOf(Screen.Notes, Screen.Tasks)
 
+                // Determina si se debe mostrar la barra de navegación inferior o lateral en función del tamaño de la pantalla.
                 val showBottomBar = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
                 val isExpandedScreen = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
+                        // Muestra la barra de navegación inferior en pantallas compactas.
                         if (showBottomBar) {
                             BottomAppBar(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -108,6 +114,7 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     Row(modifier = Modifier.padding(innerPadding)) {
+                        // Muestra la barra de navegación lateral en pantallas expandidas.
                         if (!showBottomBar) {
                             NavigationRail(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -141,6 +148,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
+                        // Host de navegación que gestiona las diferentes pantallas de la aplicación.
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,
@@ -171,11 +179,11 @@ class MainActivity : ComponentActivity() {
                                     isExpandedScreen = isExpandedScreen
                                 )
                             }
-                            composable("note_entry") {
+                            composable("note_entry") { 
                                 NoteEntryScreen(
-                                    application = application,
+                                    application = application, 
                                     onNavigateBack = { navController.popBackStack() },
-                                    onAttachmentClick = { uri, type ->
+                                    onAttachmentClick = { uri, type -> 
                                         val encodedUri = Uri.encode(uri)
                                         val encodedType = Uri.encode(type)
                                         navController.navigate("media_viewer/$encodedUri/$encodedType")
@@ -190,18 +198,18 @@ class MainActivity : ComponentActivity() {
                                     application = application,
                                     onNavigateBack = { navController.popBackStack() },
                                     noteId = backStackEntry.arguments?.getInt("noteId"),
-                                    onAttachmentClick = { uri, type ->
+                                    onAttachmentClick = { uri, type -> 
                                         val encodedUri = Uri.encode(uri)
                                         val encodedType = Uri.encode(type)
                                         navController.navigate("media_viewer/$encodedUri/$encodedType")
                                     }
                                 )
                             }
-                            composable("task_entry") {
+                            composable("task_entry") { 
                                 TaskEntryScreen(
-                                    application = application,
+                                    application = application, 
                                     onNavigateBack = { navController.popBackStack() },
-                                    onAttachmentClick = { uri, type ->
+                                    onAttachmentClick = { uri, type -> 
                                         val encodedUri = Uri.encode(uri)
                                         val encodedType = Uri.encode(type)
                                         navController.navigate("media_viewer/$encodedUri/$encodedType")
@@ -216,7 +224,7 @@ class MainActivity : ComponentActivity() {
                                     application = application,
                                     onNavigateBack = { navController.popBackStack() },
                                     taskId = backStackEntry.arguments?.getInt("taskId"),
-                                    onAttachmentClick = { uri, type ->
+                                    onAttachmentClick = { uri, type -> 
                                         val encodedUri = Uri.encode(uri)
                                         val encodedType = Uri.encode(type)
                                         navController.navigate("media_viewer/$encodedUri/$encodedType")

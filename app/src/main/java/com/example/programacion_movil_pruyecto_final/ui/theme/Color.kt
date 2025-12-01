@@ -2,6 +2,7 @@ package com.example.programacion_movil_pruyecto_final.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Paleta de colores para el tema claro.
 val md_theme_light_primary = Color(0xFF626262)
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)
 val md_theme_light_primaryContainer = Color(0xFFE8E8E8)
@@ -33,6 +34,7 @@ val md_theme_light_surfaceTint = Color(0xFF626262)
 val md_theme_light_outlineVariant = Color(0xFFCACACA)
 val md_theme_light_scrim = Color(0xFF000000)
 
+// Paleta de colores para el tema oscuro.
 val md_theme_dark_primary = Color(0xFFBDBDBD)
 val md_theme_dark_onPrimary = Color(0xFF333333)
 val md_theme_dark_primaryContainer = Color(0xFF494949)
@@ -64,4 +66,5 @@ val md_theme_dark_surfaceTint = Color(0xFFBDBDBD)
 val md_theme_dark_outlineVariant = Color(0xFF494949)
 val md_theme_dark_scrim = Color(0xFF000000)
 
+// Color semilla para la generación de la paleta.
 val seed = Color(0xFF626262)

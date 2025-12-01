@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// Clase de datos que representa los detalles de una nota.
 data class NoteDetails(
     val id: Int = 0,
     val title: String = "",
@@ -23,6 +24,7 @@ data class NoteDetails(
     val attachments: List<Attachment> = emptyList()
 )
 
+// Función de extensión para convertir un objeto NoteWithAttachments a NoteDetails.
 fun NoteWithAttachments.toNoteDetails(): NoteDetails = NoteDetails(
     id = note.id,
     title = note.title,
@@ -30,12 +32,14 @@ fun NoteWithAttachments.toNoteDetails(): NoteDetails = NoteDetails(
     attachments = attachments
 )
 
+// Función de extensión para convertir un objeto NoteDetails a Note.
 fun NoteDetails.toNote(): Note = Note(
     id = id,
     title = title,
     content = content
 )
 
+// Clase de datos que representa el estado de la UI para la pantalla de notas.
 data class NotesUiState(
     val noteList: List<NoteWithAttachments> = listOf(),
     val noteDetails: NoteDetails = NoteDetails(),
@@ -43,12 +47,15 @@ data class NotesUiState(
     val newAttachments: List<Pair<Uri, String?>> = emptyList()
 )
 
+// ViewModel para la pantalla de notas.
 class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
 
+    // Flujos de estado privados para gestionar los detalles de la nota, las notas expandidas y los nuevos adjuntos.
     private val _noteDetails = MutableStateFlow(NoteDetails())
     private val _expandedNoteIds = MutableStateFlow(emptySet<Int>())
     private val _newAttachments = MutableStateFlow<List<Pair<Uri, String?>>>(emptyList())
 
+    // Combina varios flujos para crear el estado de la UI (NotesUiState).
     val uiState: StateFlow<NotesUiState> = combine(
         repository.allNotes,
         _noteDetails,
@@ -67,6 +74,7 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         initialValue = NotesUiState()
     )
 
+    // Prepara el ViewModel para la entrada de una nota, ya sea cargando una existente o limpiando los detalles.
     fun prepareForEntry(noteId: Int?) {
         val currentId = _noteDetails.value.id
         if (noteId != null && noteId != currentId) {
@@ -76,6 +84,7 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         }
     }
 
+    // Carga los detalles de una nota por su ID.
     private fun loadNote(noteId: Int) {
         viewModelScope.launch {
             repository.getNoteById(noteId).firstOrNull()?.let {
@@ -84,14 +93,17 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         }
     }
 
+    // Actualiza el título de la nota.
     fun onTitleChange(title: String) {
         _noteDetails.update { it.copy(title = title) }
     }
 
+    // Actualiza el contenido de la nota.
     fun onContentChange(content: String) {
         _noteDetails.update { it.copy(content = content) }
     }
 
+    // Añade un nuevo adjunto a la nota.
     fun onAttachmentSelected(uri: Uri?, type: String?) {
         uri?.let { newUri ->
             val isAlreadyInNew = _newAttachments.value.any { it.first == newUri }
@@ -103,12 +115,14 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         }
     }
 
+    // Elimina un nuevo adjunto de la lista de adjuntos temporales.
     fun removeAttachment(uri: Uri) {
         _newAttachments.update { currentList ->
             currentList.filterNot { it.first == uri }
         }
     }
 
+    // Elimina un adjunto existente de la base de datos.
     fun removeExistingAttachment(attachment: Attachment) {
         viewModelScope.launch {
             repository.deleteAttachment(attachment)
@@ -118,6 +132,7 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         }
     }
 
+    // Expande o contrae una nota en la lista.
     fun toggleNoteExpansion(noteId: Int) {
         _expandedNoteIds.update { currentIds ->
             if (noteId in currentIds) {
@@ -128,11 +143,13 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         }
     }
 
+    // Limpia los detalles de la nota y la lista de nuevos adjuntos.
     fun clearNoteDetails() {
         _noteDetails.value = NoteDetails()
         _newAttachments.value = emptyList()
     }
 
+    // Guarda la nota (inserta una nueva o actualiza una existente).
     fun save() {
         if (_noteDetails.value.id == 0) {
             insert()
@@ -141,6 +158,7 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         }
     }
 
+    // Inserta una nueva nota con sus adjuntos.
     private fun insert() = viewModelScope.launch {
         val note = _noteDetails.value.toNote()
         val attachments = _newAttachments.value.map { (uri, type) ->
@@ -150,6 +168,7 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         clearNoteDetails()
     }
 
+    // Actualiza una nota existente y añade los nuevos adjuntos.
     private fun update() = viewModelScope.launch {
         val note = _noteDetails.value.toNote()
         val newAttachments = _newAttachments.value.map { (uri, type) ->
@@ -160,6 +179,7 @@ class NotesViewModel(private val repository: INotesRepository) : ViewModel() {
         clearNoteDetails()
     }
 
+    // Elimina una nota.
     fun delete(note: Note) = viewModelScope.launch {
         repository.delete(note)
     }

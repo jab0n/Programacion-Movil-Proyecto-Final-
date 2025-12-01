@@ -2,10 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Declara una característica de hardware que la aplicación puede usar. -->
+    <!-- android:required="false" significa que la aplicación puede instalarse en dispositivos sin cámara. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
 
+    <!-- Permisos requeridos por la aplicación -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -22,20 +25,24 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ProgramacionMovilPruyectoFinal">
+        android:theme="@style/Theme.ProgramacionMovilPruyectoFinal"
+        tools:targetApi="31">
+
+        <!-- Actividad principal de la aplicación -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:enableOnBackInvokedCallback="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.ProgramacionMovilPruyectoFinal">
+            <!-- Filtro de intents que define esta actividad como el punto de entrada principal -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- Proveedor de contenido para compartir archivos de forma segura -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
@@ -46,6 +53,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Receptores para notificaciones y reinicio del dispositivo -->
         <receiver android:name=".notifications.NotificationReceiver" android:enabled="true"/>
         <receiver
             android:name=".notifications.BootReceiver"
@@ -58,6 +66,7 @@
 
     </application>
 
+    <!-- Especifica las aplicaciones con las que se puede interactuar -->
     <queries>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />

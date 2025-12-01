@@ -68,18 +68,22 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// Composable que representa la pantalla para crear o editar una nota.
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NoteEntryScreen(
     application: NotesAndTasksApplication,
-    onNavigateBack: () -> Unit,
-    onAttachmentClick: (String, String) -> Unit,
-    noteId: Int? = null
+    onNavigateBack: () -> Unit, // Lógica para navegar hacia atrás.
+    onAttachmentClick: (String, String) -> Unit, // Lógica para manejar el clic en un adjunto.
+    noteId: Int? = null // ID de la nota a editar (nulo si se crea una nueva).
 ) {
+    // Obtiene una instancia del ViewModel para esta pantalla.
     val viewModel: NotesViewModel = viewModel(factory = ViewModelFactory(application, application.notesRepository, application.tasksRepository))
+    // Obtiene el estado de la UI desde el ViewModel.
     val uiState by viewModel.uiState.collectAsState()
     val noteDetails = uiState.noteDetails
 
+    // Efecto que se ejecuta cuando el ID de la nota cambia, para preparar los detalles de la nota.
     LaunchedEffect(noteId) {
         viewModel.prepareForEntry(noteId)
     }
@@ -90,6 +94,7 @@ fun NoteEntryScreen(
     var isRecording by remember { mutableStateOf(false) }
     var audioFile by remember { mutableStateOf<File?>(null) }
 
+    // Función para copiar un archivo desde una URI a almacenamiento interno.
     fun copyUriToInternalStorage(uri: Uri): Uri {
         val inputStream = context.contentResolver.openInputStream(uri)
         val fileName = getFileName(context, uri)
@@ -101,6 +106,7 @@ fun NoteEntryScreen(
         return FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     }
 
+    // Lanza la actividad para obtener contenido (archivos) y los añade como adjuntos.
     val getContent = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
         uris.forEach { uri ->
             val newUri = copyUriToInternalStorage(uri)
@@ -109,6 +115,7 @@ fun NoteEntryScreen(
         }
     }
 
+    // Lanza la cámara para tomar una foto y la añade como adjunto.
     val takePicture = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             tempUri?.let {
@@ -118,6 +125,7 @@ fun NoteEntryScreen(
         }
     }
 
+    // Lanza la cámara para grabar un video y lo añade como adjunto.
     val captureVideo = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
         if (success) {
             tempUri?.let {
@@ -127,12 +135,14 @@ fun NoteEntryScreen(
         }
     }
 
+    // Función para crear un archivo temporal con una extensión dada.
     fun createFile(extension: String): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val fileName = "${extension.uppercase()}_$timeStamp"
         return File.createTempFile(fileName, ".$extension", context.externalCacheDir)
     }
 
+    // Función para crear una URI para un archivo.
     fun createFileUri(file: File): Uri {
         return FileProvider.getUriForFile(
             context,
@@ -141,6 +151,7 @@ fun NoteEntryScreen(
         ).also { tempUri = it }
     }
 
+    // Lanza el diálogo de permisos y ejecuta una acción si el permiso es concedido.
     val permissionLauncher = rememberPermissionLauncher(onPermissionGranted = { action ->
         when (action) {
             "photo" -> {
@@ -159,15 +170,18 @@ fun NoteEntryScreen(
         }
     })
 
+    // Maneja el botón de retroceso, limpiando los detalles de la nota antes de navegar hacia atrás.
     BackHandler {
         viewModel.clearNoteDetails()
         onNavigateBack()
     }
 
+    // Efecto que se ejecuta al salir de la pantalla para detener la grabación de audio.
     DisposableEffect(Unit) {
         onDispose { audioRecorder.stop() }
     }
 
+    // Estructura de la pantalla.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -192,12 +206,13 @@ fun NoteEntryScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            // Scrollable content area
+            // Área de contenido con scroll.
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
+                // Campos de texto para el título y el contenido de la nota.
                 OutlinedTextField(
                     value = noteDetails.title,
                     onValueChange = { viewModel.onTitleChange(it) },
@@ -217,7 +232,7 @@ fun NoteEntryScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Action buttons
+                // Botones de acción para adjuntar archivos, tomar fotos, etc.
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -258,7 +273,7 @@ fun NoteEntryScreen(
                     }
                 }
 
-                // Display attachments
+                // Muestra la lista de adjuntos.
                 val allAttachments = noteDetails.attachments.map { it.uri to it.type } + uiState.newAttachments.map { it.first.toString() to it.second }
                 if (allAttachments.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -285,6 +300,7 @@ fun NoteEntryScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            // Botón para guardar la nota.
             Button(
                 onClick = {
                     viewModel.save()
@@ -300,6 +316,7 @@ fun NoteEntryScreen(
     }
 }
 
+// Composable que representa un único elemento de adjunto en la lista.
 @Composable
 fun AttachmentItem(uri: Uri, type: String?, onAttachmentClick: () -> Unit, onRemoveClick: () -> Unit) {
     val context = LocalContext.current
@@ -328,6 +345,7 @@ fun AttachmentItem(uri: Uri, type: String?, onAttachmentClick: () -> Unit, onRem
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = getFileName(context, uri), style = MaterialTheme.typography.bodyMedium)
         }
+        // Botón para eliminar el adjunto.
         IconButton(onClick = onRemoveClick) {
             Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.remove_attachment))
         }

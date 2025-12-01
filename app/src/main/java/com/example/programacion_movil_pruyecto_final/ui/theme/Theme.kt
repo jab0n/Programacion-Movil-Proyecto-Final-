@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+// Paleta de colores para el tema oscuro, utilizando los colores definidos en Color.kt.
 private val DarkColorScheme = darkColorScheme(
     primary = md_theme_dark_primary,
     onPrimary = md_theme_dark_onPrimary,
@@ -47,6 +48,7 @@ private val DarkColorScheme = darkColorScheme(
     scrim = md_theme_dark_scrim,
 )
 
+// Paleta de colores para el tema claro, utilizando los colores definidos en Color.kt.
 private val LightColorScheme = lightColorScheme(
     primary = md_theme_light_primary,
     onPrimary = md_theme_light_onPrimary,
@@ -79,13 +81,16 @@ private val LightColorScheme = lightColorScheme(
     scrim = md_theme_light_scrim,
 )
 
+// Composable principal del tema de la aplicación.
 @Composable
 fun ProgramacionMovilPruyectoFinalTheme(
+    // Determina si se debe usar el tema oscuro. Por defecto, sigue la configuración del sistema.
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
+    // Habilita o deshabilita el color dinámico (disponible en Android 12+). Actualmente está deshabilitado.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    // Selecciona el esquema de colores a utilizar en función de si el tema oscuro o el color dinámico están habilitados.
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
@@ -95,7 +100,9 @@ fun ProgramacionMovilPruyectoFinalTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+    
     val view = LocalView.current
+    // Efecto secundario que se ejecuta solo una vez para cambiar el color de la barra de estado.
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
@@ -104,6 +111,7 @@ fun ProgramacionMovilPruyectoFinalTheme(
         }
     }
 
+    // Aplica el tema de Material Design a la interfaz de usuario de la aplicación.
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
