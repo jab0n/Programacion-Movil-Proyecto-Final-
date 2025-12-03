@@ -63,7 +63,7 @@ import com.example.programacion_movil_pruyecto_final.ViewModelFactory
 import com.example.programacion_movil_pruyecto_final.media.AudioRecorder
 import com.example.programacion_movil_pruyecto_final.ui.viewmodels.NotesViewModel
 import com.example.programacion_movil_pruyecto_final.utils.getFileName
-import com.example.programacion_movil_pruyecto_final.utils.rememberPermissionLauncher
+import com.example.programacion_movil_pruyecto_final.utils.rememberPermissionHandler
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -154,7 +154,7 @@ fun NoteEntryScreen(
     }
 
     // Lanza el diálogo de permisos y ejecuta una acción si el permiso es concedido.
-    val permissionLauncher = rememberPermissionLauncher(onPermissionGranted = { action ->
+    val permissionHandler = rememberPermissionHandler(onGranted = { action ->
         when (action) {
             "photo" -> {
                 val uri = createFileUri(createFile("jpg"))
@@ -245,18 +245,18 @@ fun NoteEntryScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = stringResource(R.string.attach_file))
                     }
-                    OutlinedButton(onClick = { permissionLauncher(Manifest.permission.CAMERA, "photo") }) {
+                    OutlinedButton(onClick = { permissionHandler(Manifest.permission.CAMERA, "photo") }) {
                         Icon(Icons.Outlined.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = stringResource(R.string.take_photo))
                     }
-                    OutlinedButton(onClick = { permissionLauncher(Manifest.permission.CAMERA, "video") }) {
+                    OutlinedButton(onClick = { permissionHandler(Manifest.permission.CAMERA, "video") }) {
                         Icon(Icons.Outlined.Videocam, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = stringResource(R.string.record_video))
                     }
                     if (!isRecording) {
-                        OutlinedButton(onClick = { permissionLauncher(Manifest.permission.RECORD_AUDIO, "audio") }) {
+                        OutlinedButton(onClick = { permissionHandler(Manifest.permission.RECORD_AUDIO, "audio") }) {
                             Icon(Icons.Outlined.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(text = stringResource(R.string.start_recording))
